@@ -22,6 +22,7 @@ type AppModel struct {
 	width     int
 	height    int
 	ready     bool
+	showHelp  bool
 }
 
 func NewApp() AppModel {
@@ -47,6 +48,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
+		}
+		if msg.String() == "?" {
+			m.showHelp = !m.showHelp
+			return m, nil
 		}
 		if msg.String() == "tab" {
 			if m.active == tabUninstall {
@@ -97,6 +102,28 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m AppModel) View() tea.View {
 	if !m.ready {
 		v := tea.NewView("loading...")
+		v.AltScreen = true
+		return v
+	}
+
+	if m.showHelp {
+		help := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("205")).
+			Padding(1, 3).
+			Width(50).
+			Render(
+				"gone — keybindings\n\n" +
+					"Tab       Switch tabs\n" +
+					"/         Filter list (fuzzy)\n" +
+					"Space     Toggle selection\n" +
+					"Enter     Search (input) / Trash (list)\n" +
+					"Esc       Back to search\n" +
+					"?         Toggle help\n" +
+					"Ctrl+C    Quit",
+			)
+		overlay := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, help)
+		v := tea.NewView(overlay)
 		v.AltScreen = true
 		return v
 	}

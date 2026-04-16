@@ -56,7 +56,19 @@ func (d fileDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	}
 
 	sizeStr := HumanSize(f.size)
-	line := fmt.Sprintf("%s%s %-50s %8s  %s", cursor, check, truncate(f.path, 50), sizeStr, f.modTime)
+	// Color by size
+	switch {
+	case f.size < 1024*1024:
+		sizeStr = d.styles.SizeSmall.Render(sizeStr)
+	case f.size < 100*1024*1024:
+		sizeStr = d.styles.SizeMedium.Render(sizeStr)
+	default:
+		sizeStr = d.styles.SizeLarge.Render(sizeStr)
+	}
+
+	path := truncate(f.path, 50)
+	kind := d.styles.DimText.Render(f.kind)
+	line := fmt.Sprintf("%s%s %-50s %s %8s  %s", cursor, check, path, kind, sizeStr, f.modTime)
 
 	if index == m.Index() {
 		fmt.Fprint(w, d.styles.Cursor.Render(line))
