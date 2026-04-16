@@ -27,5 +27,11 @@ func main() {
 	for _, m := range results {
 		fmt.Printf("  [%s] %s  (%d bytes, %s)\n", m.Kind, m.Path, m.Size, m.ModTime.Format("2006-01-02"))
 	}
-	fmt.Printf("\n%d matches in %s\n", len(results), elapsed)
+
+	// After file results loop:
+	rcMatches := scanner.SearchRC(term)
+	for _, rc := range rcMatches {
+		fmt.Printf("  [rc-line] %s:%d  %s\n", rc.File, rc.LineNum, rc.Line)
+	}
+	fmt.Printf("\n%d files + %d rc lines in %s\n", len(results), len(rcMatches), elapsed)
 }
