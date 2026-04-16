@@ -90,6 +90,39 @@ So we built it.
 
 ## Install
 
+### Homebrew (recommended)
+
+```bash
+brew install yasku/tap/gone
+```
+
+### Pre-built binary
+
+Grab the latest release from the [Releases page](https://github.com/yasku/gone/releases/latest).
+
+```bash
+# Apple Silicon (M1 / M2 / M3 / M4)
+curl -L -o gone https://github.com/yasku/gone/releases/latest/download/gone-darwin-arm64
+chmod +x gone
+
+# Intel
+curl -L -o gone https://github.com/yasku/gone/releases/latest/download/gone-darwin-amd64
+chmod +x gone
+
+# First run — binaries are unsigned, clear the quarantine bit:
+xattr -d com.apple.quarantine gone
+
+./gone
+```
+
+Verify the download against `checksums.txt` from the release: `shasum -a 256 gone`.
+
+### Go install
+
+```bash
+go install github.com/yasku/gone/cmd/gone@latest
+```
+
 ### From source
 
 ```bash
@@ -98,20 +131,6 @@ cd gone
 go build -o gone ./cmd/gone
 ./gone
 ```
-
-### Go install
-
-```bash
-go install github.com/yasku/gone/cmd/gone@latest
-```
-
-<!--
-### Homebrew
-
-```bash
-brew install yasku/tap/gone
-```
--->
 
 <br>
 
