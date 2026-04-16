@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [2026-04-16] Task 7: Root Model + Tab Switching
+
+- Created `gone/internal/tui/app.go`: `AppModel` struct with `activeTab` enum (tabUninstall / tabMonitor); `NewApp()` constructor; `Init()` batches both sub-model init commands; `Update()` handles `ctrl+c` quit, `tab` key cycling, `WindowSizeMsg` resizing both sub-models; always routes `refreshMsg` to monitor regardless of active tab (prevents freeze); routes other messages to active tab only; `View()` renders tab bar with active/inactive styles via lipgloss + bottom border, then delegates content to active sub-model; sets `AltScreen = true` on returned `tea.View`
+- Modified `gone/cmd/gone/main.go`: simplified to a single `main()` that calls `tea.NewProgram(tui.NewApp())` — root model moved entirely into `tui.AppModel`
+- Verified: `go build ./...` succeeds; `go test ./...` all pass (scanner, remover, sysinfo packages)
+
 ## [2026-04-16] Task 6: System Monitor
 
 - Created `gone/internal/sysinfo/sysinfo.go`: `Snapshot` struct (CPU%, MemTotal/Used/Avail, Swap, Disk, top-N processes); `TakeSnapshot(topN int)` collects data via gopsutil v4 (cpu, mem, disk, process packages); `HumanBytes()` formatter; processes sorted by CPU% descending
