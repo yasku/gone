@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## [2026-04-16] Task 4: Preview Pane
+
+- Modified `gone/internal/tui/uninstall.go`:
+  - Added `charm.land/bubbles/v2/viewport` and `charm.land/lipgloss/v2` imports
+  - Added `viewport viewport.Model` and `showPreview bool` fields to `UninstallModel`
+  - Initialized viewport with `viewport.New()` in `NewUninstallModel()`
+  - Updated `SetSize()` to split width 50/50: list gets `w/2-2`, viewport gets `w/2-4`; `showPreview` hides pane when terminal is ≤80 cols wide (uses `SetWidth`/`SetHeight` pointer methods on v2 viewport)
+  - Added `previewContent()` function: shows path, type, size, modified date; for dirs lists up to 20 entries with overflow count; for rc-lines shows file and line number
+  - Updated `View()` to use `lipgloss.JoinHorizontal` for side-by-side split when `showPreview` is true, falls back to full-width list otherwise
+  - Updated `Update()` to set initial viewport content on `scanResultMsg` and refresh preview after each list navigation keystroke
+- Fixed v2 API differences: `viewport.New()` takes option funcs (not int args); `Width`/`Height` are not assignable fields — use `SetWidth()`/`SetHeight()` methods
+- Verified: `go build ./...` succeeds; `go test ./...` all pass
+
 ## [2026-04-16] Task 3: Uninstall TUI — Search, Scan, List, Multi-Select
 
 - Created `gone/internal/tui/styles.go`: `Styles` struct with lipgloss styles (app, tabs, search bar, status bar, preview, selected, cursor, dim text, size colors); `DefaultStyles()` factory; `HumanSize()` formatter
