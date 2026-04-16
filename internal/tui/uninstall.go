@@ -12,6 +12,7 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"gone/internal/remover"
 	"gone/internal/scanner"
 )
 
@@ -113,6 +114,37 @@ func runFullScan(term string) tea.Cmd {
 	}
 }
 
+// --- Trash result message ---
+
+type trashDoneMsg struct {
+	count  int
+	freed  int64
+	errors []string
+}
+
+func trashSelected(items []fileItem, term string) tea.Cmd {
+	return func() tea.Msg {
+		var count int
+		var freed int64
+		var errs []string
+		for _, item := range items {
+			if item.kind == "rc-line" {
+				continue // skip rc lines for now
+			}
+			if err := remover.MoveToTrash(item.path); err != nil {
+				errs = append(errs, err.Error())
+				continue
+			}
+			remover.AppendLog(remover.LogEntry{
+				Path: item.path, Size: item.size, Kind: item.kind, SearchTerm: term,
+			})
+			count++
+			freed += item.size
+		}
+		return trashDoneMsg{count: count, freed: freed, errors: errs}
+	}
+}
+
 // --- Focus state ---
 
 type focus int
@@ -211,8 +243,13 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 				m.textinput.Focus()
 				return m, textinput.Blink
 			case "enter":
-				m.status = "ENTER pressed — trash wired in Task 5"
-				return m, nil
+				sel := m.SelectedItems()
+				if len(sel) == 0 {
+					return m, nil
+				}
+				m.status = fmt.Sprintf("Trashing %d items…", len(sel))
+				m.scanning = true
+				return m, trashSelected(sel, m.term)
 			}
 		}
 
@@ -230,6 +267,22 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 		if len(msg.items) > 0 {
 			m.viewport.SetContent(previewContent(msg.items[0]))
 		}
+		return m, nil
+
+	case trashDoneMsg:
+		m.scanning = false
+		m.status = fmt.Sprintf("Trashed %d items, freed %s", msg.count, HumanSize(msg.freed))
+		if len(msg.errors) > 0 {
+			m.status += fmt.Sprintf(" (%d errors)", len(msg.errors))
+		}
+		// Remove trashed items from list
+		var remaining []list.Item
+		for _, item := range m.list.Items() {
+			if f, ok := item.(fileItem); ok && !f.selected {
+				remaining = append(remaining, f)
+			}
+		}
+		m.list.SetItems(remaining)
 		return m, nil
 
 	case spinner.TickMsg:
