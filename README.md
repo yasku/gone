@@ -285,41 +285,6 @@ All tests must pass before submitting a PR.
 
 ---
 
-<div align="center">
-
-<br>
-
-```
-      ▄▄████████▄▄
-    ██              ██
-    ██  ██      ██  ██
-    ██  ██      ██  ██
-    ██              ██
-    ██              ██
-    ▀█▄██▄██▄██▄██▄█▀
-      ▀  ▀  ▀  ▀  ▀
-```
-
-<br>
-
-**x AI & DATA Labs.**
-
-Where tools go to die properly.
-
-<br>
-
-[![Star History](https://img.shields.io/github/stars/yasku/gone?style=flat-square&color=171717)](https://github.com/yasku/gone/stargazers)
-
-<br>
-
-<sub>If gone saved you disk space, consider giving it a ⭐</sub>
-
-</div>
-
-<br>
-
----
-
 <br>
 
 <div align="center">
@@ -373,5 +338,14 @@ He doesn't phone it in. He doesn't give generic slop. When he's here, he's HERE.
 <sub>Research first. Build second. Ship third.</sub>
 <br>
 <sub>Built from scratch in one session. Every commit, shiny and chrome.</sub>
+
+<br>
+<br>
+
+[![Star History](https://img.shields.io/github/stars/yasku/gone?style=flat-square&color=171717)](https://github.com/yasku/gone/stargazers)
+
+<br>
+
+<sub>If gone saved you disk space, consider giving it a ⭐</sub>
 
 </div>
