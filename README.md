@@ -19,10 +19,10 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/yasku/gone?style=flat-square&color=171717)](https://github.com/yasku/gone/commits/main)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-00ADD8?style=flat-square)](CONTRIBUTING.md)
 
-**You deleted the app. But it's still here.**
+**You deleted an app on macOS. But it's still here.**
 
 gone finds every trace — caches, configs, logs, shell RC lines — and sends them to Trash.<br>
-With Put Back support. Because mistakes happen.
+With Put Back support. Because mistakes happen. With gone eveything is... gone.
 
 <br>
 
