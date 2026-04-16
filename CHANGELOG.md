@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [2026-04-16] Task 8: Polish
+
+- Modified `gone/internal/tui/uninstall.go`: updated `fileDelegate.Render()` to color-code file sizes — green (`SizeSmall`) for <1 MB, yellow (`SizeMedium`) for 1 MB–100 MB, red (`SizeLarge`) for ≥100 MB; added dim-text rendering for file kind column in the list row
+- Modified `gone/internal/tui/app.go`: added `showHelp bool` field to `AppModel`; added `?` key handler in `Update()` that toggles `showHelp`; added help overlay in `View()` using `lipgloss.Place` centered on screen — shows all keybindings in a rounded-bordered box; overlay dismisses on second `?` press; `AltScreen = true` preserved on overlay view
+- Verified: `go build ./...` succeeds; `go test ./...` all pass (5/5 tests)
+
 ## [2026-04-16] Task 7: Root Model + Tab Switching
 
 - Created `gone/internal/tui/app.go`: `AppModel` struct with `activeTab` enum (tabUninstall / tabMonitor); `NewApp()` constructor; `Init()` batches both sub-model init commands; `Update()` handles `ctrl+c` quit, `tab` key cycling, `WindowSizeMsg` resizing both sub-models; always routes `refreshMsg` to monitor regardless of active tab (prevents freeze); routes other messages to active tab only; `View()` renders tab bar with active/inactive styles via lipgloss + bottom border, then delegates content to active sub-model; sets `AltScreen = true` on returned `tea.View`
