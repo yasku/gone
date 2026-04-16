@@ -24,17 +24,17 @@ type Styles struct {
 func DefaultStyles() Styles {
 	return Styles{
 		App:         lipgloss.NewStyle().Padding(1, 2),
-		TabActive:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205")).Padding(0, 2),
+		TabActive:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("252")).Padding(0, 2),
 		TabInactive: lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 2),
-		SearchBar:   lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("205")).Padding(0, 1),
+		SearchBar:   lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("245")).Padding(0, 1),
 		StatusBar:   lipgloss.NewStyle().Background(lipgloss.Color("236")).Foreground(lipgloss.Color("252")).Padding(0, 1),
 		Preview:     lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1),
-		Selected:    lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true),
-		Cursor:      lipgloss.NewStyle().Foreground(lipgloss.Color("205")),
+		Selected:    lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true),
+		Cursor:      lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
 		DimText:     lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
-		SizeSmall:   lipgloss.NewStyle().Foreground(lipgloss.Color("82")),
-		SizeMedium:  lipgloss.NewStyle().Foreground(lipgloss.Color("214")),
-		SizeLarge:   lipgloss.NewStyle().Foreground(lipgloss.Color("196")),
+		SizeSmall:   lipgloss.NewStyle().Foreground(lipgloss.Color("120")),
+		SizeMedium:  lipgloss.NewStyle().Foreground(lipgloss.Color("178")),
+		SizeLarge:   lipgloss.NewStyle().Foreground(lipgloss.Color("167")),
 	}
 }
 

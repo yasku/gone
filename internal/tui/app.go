@@ -107,20 +107,35 @@ func (m AppModel) View() tea.View {
 	}
 
 	if m.showHelp {
+		ghost := "" +
+			"      ▄▄████████▄▄\n" +
+			"    ██              ██\n" +
+			"    ██  ██      ██  ██\n" +
+			"    ██  ██      ██  ██\n" +
+			"    ██              ██\n" +
+			"    ██              ██\n" +
+			"    ▀█▄██▄██▄██▄██▄█▀\n" +
+			"      ▀  ▀  ▀  ▀  ▀\n"
+		ghostArt := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("245")).
+			Render(ghost)
 		help := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("205")).
+			BorderForeground(lipgloss.Color("245")).
 			Padding(1, 3).
 			Width(50).
 			Render(
-				"gone — keybindings\n\n" +
-					"Tab       Switch tabs\n" +
-					"/         Filter list (fuzzy)\n" +
-					"Space     Toggle selection\n" +
-					"Enter     Search (input) / Trash (list)\n" +
-					"Esc       Back to search\n" +
-					"?         Toggle help\n" +
-					"Ctrl+C    Quit",
+				ghostArt + "\n" +
+					"  g o n e — keybindings\n\n" +
+					"  Tab       Switch tabs\n" +
+					"  /         Filter list (fuzzy)\n" +
+					"  Space     Toggle selection\n" +
+					"  Enter     Search (input) / Trash (list)\n" +
+					"  Esc       Back to search\n" +
+					"  ?         Toggle help\n" +
+					"  Ctrl+C    Quit\n\n" +
+					"  hunt. select. trash.\n\n" +
+					"         x AI & DATA Labs.",
 			)
 		overlay := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, help)
 		v := tea.NewView(overlay)
