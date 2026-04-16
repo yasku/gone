@@ -2,6 +2,9 @@
 gone
 *.exe
 
+# Release artifacts
+dist/
+
 # Backups (pre-bugfix snapshots)
 backups/
 

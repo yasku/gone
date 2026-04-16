@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## [2026-04-16] Open source launch governance
+
+- Created `LICENSE` (MIT, copyright Agustin Yaskuloski 2026)
+- Created `CONTRIBUTING.md`: dev setup, ground rules (macOS-only, no curated DBs, Trash-only removal), PR flow with `feat:`/`fix:`/`docs:` commit prefixes, code style, testing guidelines, bug + security reporting
+- Created `SECURITY.md`: supported versions, vulnerability reporting policy via agustiny-dev.ar, in-scope and out-of-scope issues, hall of fame
+- Created `CODE_OF_CONDUCT.md`: Contributor Covenant v2.1 with enforcement ladder
+- Created `.github/ISSUE_TEMPLATE/bug_report.yml`: structured form requiring macOS version, Go version, gone commit SHA, repro steps, log output
+- Created `.github/ISSUE_TEMPLATE/feature_request.yml`: alignment-checklist tied to gone's scope; rejects cross-platform requests
+- Created `.github/ISSUE_TEMPLATE/config.yml`: disables blank issues, links to Discussions and SECURITY.md
+- Created `.github/PULL_REQUEST_TEMPLATE.md`: type-of-change selector, full verification checklist (`go fmt`/`vet`/`build`/`test`), `CHANGELOG.md` update reminder, ground-rules checkboxes
+- Modified `README.md`:
+  - Added 7 new badges (Built with Claude Code, Powered by MAD MAX, Made by yasku, GitHub stars/issues/last-commit, PRs Welcome)
+  - Wrapped Usage TUI mockup in `<div align="center">` for centered rendering on GitHub
+  - Moved `assets/banner.png` into the footer placeholder under "Who we are"
+- Verified: `go build ./cmd/... ./internal/...` succeeds; `go test ./cmd/... ./internal/...` all green (5/5 tests)
+
 ## [v1.0.0] — 2026-04-16
 
 First stable release. `gone` is a macOS uninstaller and system monitor TUI built in Go with Bubble Tea v2.
