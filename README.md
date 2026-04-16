@@ -28,6 +28,10 @@ With Put Back support. Because mistakes happen. With gone eveything is... gone.
 
 [Features](#features) · [Install](#install) · [Usage](#usage) · [How it works](#how-it-works) · [Stack](#stack) · [Contributing](#contributing)
 
+<br>
+
+<sub>🇬🇧 **English** · <a href="README.es.md">🇪🇸 Español</a></sub>
+
 </div>
 
 <br>
