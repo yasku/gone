@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charlievieth/fastwalk"
@@ -20,13 +21,15 @@ type Match struct {
 
 func Search(term string, paths []string) ([]Match, error) {
 	lower := strings.ToLower(term)
+	var mu sync.Mutex
 	var results []Match
+	seen := make(map[string]bool)
 
 	for _, root := range paths {
 		if _, err := os.Stat(root); err != nil {
 			continue
 		}
-		fastwalk.Walk(nil, root, func(path string, d fs.DirEntry, err error) error {
+		_ = fastwalk.Walk(nil, root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return nil
 			}
@@ -48,13 +51,18 @@ func Search(term string, paths []string) ([]Match, error) {
 			if d.Type()&fs.ModeSymlink != 0 {
 				kind = "symlink"
 			}
-			results = append(results, Match{
-				Path:    path,
-				IsDir:   d.IsDir(),
-				Size:    info.Size(),
-				ModTime: info.ModTime(),
-				Kind:    kind,
-			})
+			mu.Lock()
+			if !seen[path] {
+				seen[path] = true
+				results = append(results, Match{
+					Path:    path,
+					IsDir:   d.IsDir(),
+					Size:    info.Size(),
+					ModTime: info.ModTime(),
+					Kind:    kind,
+				})
+			}
+			mu.Unlock()
 			return nil
 		})
 	}

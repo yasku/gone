@@ -16,15 +16,15 @@ export CLAUDE_API_KEY="sk-test"
 alias ll="ls -la"
 source ~/.claude/init.sh
 `
-	os.WriteFile(rc, []byte(content), 0o644)
+	if err := os.WriteFile(rc, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	origFiles := scanner.RCFiles
 	scanner.RCFiles = []string{".zshrc"}
-	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmp)
+	t.Setenv("HOME", tmp)
 	defer func() {
 		scanner.RCFiles = origFiles
-		os.Setenv("HOME", origHome)
 	}()
 
 	matches := scanner.SearchRC("claude")

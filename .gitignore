@@ -1,0 +1,12 @@
+# Binary
+gone
+*.exe
+
+# Backups (pre-bugfix snapshots)
+backups/
+
+# Orchestrator logs
+orchestrator/logs/
+
+# OS
+.DS_Store
