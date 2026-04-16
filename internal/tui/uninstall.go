@@ -97,7 +97,10 @@ func runFullScan(term string) tea.Cmd {
 		var items []fileItem
 
 		// File scan
-		matches, _ := scanner.Search(term, scanner.ScanPaths)
+		matches, err := scanner.Search(term, scanner.GetScanPaths())
+		if err != nil {
+			return scanResultMsg{items: items}
+		}
 		for _, m := range matches {
 			size := m.Size
 			if m.IsDir {
@@ -252,8 +255,8 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 				return m, tea.Batch(cmds...)
 			case "esc":
 				m.focus = focusSearch
-				m.textinput.Focus()
-				return m, textinput.Blink
+				cmd := m.textinput.Focus()
+				return m, cmd
 			case "enter":
 				sel := m.SelectedItems()
 				if len(sel) == 0 {
@@ -346,14 +349,18 @@ func previewContent(item fileItem) string {
 		b.WriteString(fmt.Sprintf("Modified: %s\n", item.modTime))
 	}
 	if item.kind == "dir" {
-		entries, _ := os.ReadDir(item.path)
-		b.WriteString(fmt.Sprintf("Contains: %d entries\n", len(entries)))
-		for i, e := range entries {
-			if i >= 20 {
-				b.WriteString(fmt.Sprintf("  ... and %d more\n", len(entries)-20))
-				break
+		entries, err := os.ReadDir(item.path)
+		if err != nil {
+			b.WriteString(fmt.Sprintf("Error reading dir: %v\n", err))
+		} else {
+			b.WriteString(fmt.Sprintf("Contains: %d entries\n", len(entries)))
+			for i, e := range entries {
+				if i >= 20 {
+					b.WriteString(fmt.Sprintf("  ... and %d more\n", len(entries)-20))
+					break
+				}
+				b.WriteString(fmt.Sprintf("  %s\n", e.Name()))
 			}
-			b.WriteString(fmt.Sprintf("  %s\n", e.Name()))
 		}
 	}
 	if item.kind == "rc-line" {
