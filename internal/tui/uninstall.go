@@ -3,12 +3,15 @@ package tui
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"gone/internal/scanner"
 )
 
@@ -122,16 +125,18 @@ const (
 // --- Uninstall model ---
 
 type UninstallModel struct {
-	textinput textinput.Model
-	spinner   spinner.Model
-	list      list.Model
-	styles    Styles
-	focus     focus
-	scanning  bool
-	width     int
-	height    int
-	term      string
-	status    string
+	textinput   textinput.Model
+	spinner     spinner.Model
+	list        list.Model
+	viewport    viewport.Model
+	styles      Styles
+	focus       focus
+	scanning    bool
+	showPreview bool
+	width       int
+	height      int
+	term        string
+	status      string
 }
 
 func NewUninstallModel() UninstallModel {
@@ -151,12 +156,16 @@ func NewUninstallModel() UninstallModel {
 	l.SetFilteringEnabled(true)
 	l.DisableQuitKeybindings()
 
+	vp := viewport.New()
+
 	return UninstallModel{
-		textinput: ti,
-		spinner:   sp,
-		list:      l,
-		styles:    DefaultStyles(),
-		focus:     focusSearch,
+		textinput:   ti,
+		spinner:     sp,
+		list:        l,
+		viewport:    vp,
+		styles:      DefaultStyles(),
+		focus:       focusSearch,
+		showPreview: true,
 	}
 }
 
@@ -217,6 +226,10 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 		m.focus = focusList
 		m.textinput.Blur()
 		m.status = fmt.Sprintf("Found %d matches for %q", len(msg.items), m.term)
+		// Set initial preview content for the first item
+		if len(msg.items) > 0 {
+			m.viewport.SetContent(previewContent(msg.items[0]))
+		}
 		return m, nil
 
 	case spinner.TickMsg:
@@ -237,6 +250,10 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 		var cmd tea.Cmd
 		m.list, cmd = m.list.Update(msg)
 		cmds = append(cmds, cmd)
+		// Update preview after list navigation
+		if item, ok := m.list.SelectedItem().(fileItem); ok {
+			m.viewport.SetContent(previewContent(item))
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -246,21 +263,63 @@ func (m UninstallModel) SetSize(w, h int) UninstallModel {
 	m.width = w
 	m.height = h
 	m.textinput.SetWidth(w - 6)
-	m.list.SetSize(w-4, h-6)
+	listW := w/2 - 2
+	m.list.SetSize(listW, h-6)
+	m.viewport.SetWidth(w/2 - 4)
+	m.viewport.SetHeight(h - 6)
+	m.showPreview = w > 80
 	return m
+}
+
+// previewContent builds the text content shown in the preview pane for a given file item.
+func previewContent(item fileItem) string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("Path: %s\n", item.path))
+	b.WriteString(fmt.Sprintf("Type: %s\n", item.kind))
+	b.WriteString(fmt.Sprintf("Size: %s\n", HumanSize(item.size)))
+	if item.modTime != "" {
+		b.WriteString(fmt.Sprintf("Modified: %s\n", item.modTime))
+	}
+	if item.kind == "dir" {
+		entries, _ := os.ReadDir(item.path)
+		b.WriteString(fmt.Sprintf("Contains: %d entries\n", len(entries)))
+		for i, e := range entries {
+			if i >= 20 {
+				b.WriteString(fmt.Sprintf("  ... and %d more\n", len(entries)-20))
+				break
+			}
+			b.WriteString(fmt.Sprintf("  %s\n", e.Name()))
+		}
+	}
+	if item.kind == "rc-line" {
+		parts := strings.SplitN(item.path, ":", 2)
+		if len(parts) == 2 {
+			b.WriteString(fmt.Sprintf("\nFile: %s\nLine: %s\n", parts[0], parts[1]))
+		}
+	}
+	return b.String()
 }
 
 func (m UninstallModel) View() string {
 	var b strings.Builder
 
-	// Search bar
+	// Search bar (full width)
 	b.WriteString(m.styles.SearchBar.Width(m.width - 6).Render(m.textinput.View()))
 	b.WriteString("\n")
 
 	if m.scanning {
 		b.WriteString("\n  " + m.spinner.View() + " " + m.status + "\n")
 	} else if len(m.list.Items()) > 0 {
-		b.WriteString(m.list.View())
+		listView := m.list.View()
+		if m.showPreview {
+			previewView := m.styles.Preview.
+				Width(m.width/2 - 4).
+				Height(m.height - 8).
+				Render(m.viewport.View())
+			b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, listView, previewView))
+		} else {
+			b.WriteString(listView)
+		}
 	} else if m.term != "" {
 		b.WriteString("\n  No matches found.\n")
 	}
