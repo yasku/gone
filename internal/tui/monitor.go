@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -144,33 +145,15 @@ func (m MonitorModel) View() string {
 func (m MonitorModel) sortedProcs() []sysinfo.ProcInfo {
 	procs := make([]sysinfo.ProcInfo, len(m.snapshot.Procs))
 	copy(procs, m.snapshot.Procs)
-	// gopsutil already sorts by CPU in TakeSnapshot; re-sort if needed
 	switch m.sortBy {
+	case sortCPU:
+		sort.Slice(procs, func(i, j int) bool { return procs[i].CPU > procs[j].CPU })
 	case sortMem:
-		for i := 0; i < len(procs); i++ {
-			for j := i + 1; j < len(procs); j++ {
-				if procs[j].Mem > procs[i].Mem {
-					procs[i], procs[j] = procs[j], procs[i]
-				}
-			}
-		}
+		sort.Slice(procs, func(i, j int) bool { return procs[i].Mem > procs[j].Mem })
 	case sortRSS:
-		for i := 0; i < len(procs); i++ {
-			for j := i + 1; j < len(procs); j++ {
-				if procs[j].RSS > procs[i].RSS {
-					procs[i], procs[j] = procs[j], procs[i]
-				}
-			}
-		}
+		sort.Slice(procs, func(i, j int) bool { return procs[i].RSS > procs[j].RSS })
 	case sortPID:
-		for i := 0; i < len(procs); i++ {
-			for j := i + 1; j < len(procs); j++ {
-				if procs[j].PID < procs[i].PID {
-					procs[i], procs[j] = procs[j], procs[i]
-				}
-			}
-		}
-	// sortCPU: already sorted by TakeSnapshot
+		sort.Slice(procs, func(i, j int) bool { return procs[i].PID < procs[j].PID })
 	}
 	return procs
 }
