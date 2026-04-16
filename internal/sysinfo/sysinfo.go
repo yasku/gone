@@ -3,6 +3,7 @@ package sysinfo
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -60,6 +61,16 @@ func TakeSnapshot(topN int) Snapshot {
 		return s
 	}
 
+	// Pass 1: seed the CPU baseline for every process.
+	// p.Percent(0) with a zero interval records the current CPU ticks and
+	// returns 0 on the very first call for each process object.  We must
+	// call it once, wait, then call it again to get a real delta.
+	for _, p := range procs {
+		p.Percent(0) //nolint:errcheck // intentional seed; result is always 0
+	}
+	time.Sleep(500 * time.Millisecond)
+
+	// Pass 2: collect actual measurements after the sample window.
 	var infos []ProcInfo
 	for _, p := range procs {
 		name, err := p.Name()
