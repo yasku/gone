@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gone — Banner Playground</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 14px; font-weight: 500; color: #888; letter-spacing: -0.3px; }
+  header span { color: #333; }
+
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .controls {
+    width: 320px;
+    min-width: 320px;
+    border-right: 1px solid #1a1a1a;
+    overflow-y: auto;
+    padding: 20px;
+  }
+
+  .control-group {
+    margin-bottom: 24px;
+  }
+  .control-group h3 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #555;
+    margin-bottom: 12px;
+  }
+
+  .control {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .control label {
+    font-size: 12px;
+    color: #777;
+  }
+  .control input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #222;
+    border-radius: 2px;
+    outline: none;
+  }
+  .control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .control input[type="color"] {
+    -webkit-appearance: none;
+    border: 1px solid #333;
+    border-radius: 4px;
+    width: 40px;
+    height: 28px;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px;
+  }
+  .control select {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    color: #ccc;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+  }
+  .control .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .control .value {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: #555;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .preset-btn {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    color: #999;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { border-color: #444; color: #fff; }
+  .preset-btn.active { border-color: #fff; color: #fff; }
+
+  .preview-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: #050505;
+    position: relative;
+  }
+
+  .preview-container {
+    border: 1px solid #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  }
+
+  .bottom-bar {
+    border-top: 1px solid #1a1a1a;
+    padding: 16px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .export-btn {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+    transition: opacity 0.15s;
+  }
+  .export-btn:hover { opacity: 0.85; }
+  .export-btn.secondary {
+    background: #1a1a1a;
+    color: #ccc;
+    border: 1px solid #2a2a2a;
+  }
+  .export-btn.secondary:hover { border-color: #444; }
+  .feedback {
+    font-size: 12px;
+    color: #4ade80;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .feedback.show { opacity: 1; }
+
+  .size-label {
+    position: absolute;
+    bottom: 12px;
+    right: 20px;
+    font-family: 'SF Mono', monospace;
+    font-size: 10px;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>gone</h1>
+  <span>·</span>
+  <h1 style="color:#555">Banner Playground</h1>
+</header>
+
+<div class="layout">
+  <div class="controls">
+
+    <div class="presets">
+      <button class="preset-btn active" onclick="applyPreset('phantom')">Phantom</button>
+      <button class="preset-btn" onclick="applyPreset('neon')">Neon Trace</button>
+      <button class="preset-btn" onclick="applyPreset('blood')">Blood Red</button>
+      <button class="preset-btn" onclick="applyPreset('ice')">Ice</button>
+      <button class="preset-btn" onclick="applyPreset('minimal')">Minimal</button>
+    </div>
+
+    <div class="control-group">
+      <h3>Canvas</h3>
+      <div class="control">
+        <label>Background</label>
+        <div class="row">
+          <input type="color" id="bgColor" value="#0a0a0a" oninput="update()">
+          <span class="value" id="bgColorVal">#0a0a0a</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Width</label>
+        <div class="row">
+          <input type="range" id="width" min="600" max="1200" value="800" oninput="update()">
+          <span class="value" id="widthVal">800</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Height</label>
+        <div class="row">
+          <input type="range" id="height" min="150" max="500" value="300" oninput="update()">
+          <span class="value" id="heightVal">300</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h3>Title</h3>
+      <div class="control">
+        <label>Color</label>
+        <div class="row">
+          <input type="color" id="titleColor" value="#ffffff" oninput="update()">
+          <span class="value" id="titleColorVal">#ffffff</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Size</label>
+        <div class="row">
+          <input type="range" id="titleSize" min="48" max="120" value="72" oninput="update()">
+          <span class="value" id="titleSizeVal">72</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Letter Spacing</label>
+        <div class="row">
+          <input type="range" id="titleSpacing" min="-10" max="20" value="-2" oninput="update()">
+          <span class="value" id="titleSpacingVal">-2</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Opacity</label>
+        <div class="row">
+          <input type="range" id="titleOpacity" min="0" max="100" value="100" oninput="update()">
+          <span class="value" id="titleOpacityVal">100%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h3>Tagline</h3>
+      <div class="control">
+        <label>Text</label>
+        <select id="tagline" onchange="update()">
+          <option value="hunt. select. trash.">hunt. select. trash.</option>
+          <option value="find every trace. remove it.">find every trace. remove it.</option>
+          <option value="nothing stays behind.">nothing stays behind.</option>
+          <option value="macOS uninstaller for the obsessed.">macOS uninstaller for the obsessed.</option>
+          <option value="clean exits only.">clean exits only.</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Color</label>
+        <div class="row">
+          <input type="color" id="tagColor" value="#555555" oninput="update()">
+          <span class="value" id="tagColorVal">#555555</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Size</label>
+        <div class="row">
+          <input type="range" id="tagSize" min="10" max="24" value="14" oninput="update()">
+          <span class="value" id="tagSizeVal">14</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Spacing</label>
+        <div class="row">
+          <input type="range" id="tagSpacing" min="0" max="20" value="6" oninput="update()">
+          <span class="value" id="tagSpacingVal">6</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h3>Icon</h3>
+      <div class="control">
+        <label>Style</label>
+        <select id="iconStyle" onchange="update()">
+          <option value="ghost">Ghost</option>
+          <option value="skull">Skull</option>
+          <option value="crosshair">Crosshair</option>
+          <option value="none">None</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Color</label>
+        <div class="row">
+          <input type="color" id="iconColor" value="#ffffff" oninput="update()">
+          <span class="value" id="iconColorVal">#ffffff</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Opacity</label>
+        <div class="row">
+          <input type="range" id="iconOpacity" min="0" max="100" value="8" oninput="update()">
+          <span class="value" id="iconOpacityVal">8%</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Size</label>
+        <div class="row">
+          <input type="range" id="iconSize" min="50" max="300" value="180" oninput="update()">
+          <span class="value" id="iconSizeVal">180</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h3>Accent Line</h3>
+      <div class="control">
+        <label>Color</label>
+        <div class="row">
+          <input type="color" id="accentColor" value="#ffffff" oninput="update()">
+          <span class="value" id="accentColorVal">#ffffff</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Opacity</label>
+        <div class="row">
+          <input type="range" id="accentOpacity" min="0" max="100" value="10" oninput="update()">
+          <span class="value" id="accentOpacityVal">10%</span>
+        </div>
+      </div>
+      <div class="control">
+        <label>Width</label>
+        <div class="row">
+          <input type="range" id="accentWidth" min="20" max="200" value="60" oninput="update()">
+          <span class="value" id="accentWidthVal">60</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h3>Noise / Grain</h3>
+      <div class="control">
+        <label>Intensity</label>
+        <div class="row">
+          <input type="range" id="noiseOpacity" min="0" max="30" value="5" oninput="update()">
+          <span class="value" id="noiseOpacityVal">5%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="preview-area">
+    <div class="preview-container" id="previewContainer"></div>
+    <div class="size-label" id="sizeLabel">800 x 300</div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <button class="export-btn" onclick="copySVG()">Copy SVG</button>
+  <button class="export-btn secondary" onclick="downloadSVG()">Download .svg</button>
+  <button class="export-btn secondary" onclick="downloadPNG()">Download .png</button>
+  <span class="feedback" id="feedback">Copied!</span>
+</div>
+
+<script>
+const DEFAULTS = {
+  bgColor: '#0a0a0a', width: 800, height: 300,
+  titleColor: '#ffffff', titleSize: 72, titleSpacing: -2, titleOpacity: 100,
+  tagline: 'hunt. select. trash.', tagColor: '#555555', tagSize: 14, tagSpacing: 6,
+  iconStyle: 'ghost', iconColor: '#ffffff', iconOpacity: 8, iconSize: 180,
+  accentColor: '#ffffff', accentOpacity: 10, accentWidth: 60,
+  noiseOpacity: 5
+};
+
+const PRESETS = {
+  phantom: { ...DEFAULTS },
+  neon: {
+    ...DEFAULTS,
+    bgColor: '#05050a', titleColor: '#00ff88', tagColor: '#00ff8855',
+    iconColor: '#00ff88', iconOpacity: 5, accentColor: '#00ff88', accentOpacity: 15,
+    tagline: 'nothing stays behind.'
+  },
+  blood: {
+    ...DEFAULTS,
+    bgColor: '#0a0505', titleColor: '#ff3333', tagColor: '#ff333366',
+    iconColor: '#ff3333', iconOpacity: 6, iconStyle: 'skull',
+    accentColor: '#ff3333', accentOpacity: 20,
+    tagline: 'hunt. select. trash.'
+  },
+  ice: {
+    ...DEFAULTS,
+    bgColor: '#050a0f', titleColor: '#88ccff', tagColor: '#88ccff55',
+    iconColor: '#88ccff', iconOpacity: 6, iconStyle: 'crosshair',
+    accentColor: '#88ccff', accentOpacity: 12,
+    tagline: 'clean exits only.'
+  },
+  minimal: {
+    ...DEFAULTS,
+    bgColor: '#000000', titleColor: '#ffffff', titleSize: 80, titleSpacing: -4,
+    tagColor: '#333333', iconStyle: 'none', accentOpacity: 5,
+    tagline: 'macOS uninstaller for the obsessed.'
+  }
+};
+
+function getState() {
+  return {
+    bgColor: document.getElementById('bgColor').value,
+    width: +document.getElementById('width').value,
+    height: +document.getElementById('height').value,
+    titleColor: document.getElementById('titleColor').value,
+    titleSize: +document.getElementById('titleSize').value,
+    titleSpacing: +document.getElementById('titleSpacing').value,
+    titleOpacity: +document.getElementById('titleOpacity').value,
+    tagline: document.getElementById('tagline').value,
+    tagColor: document.getElementById('tagColor').value,
+    tagSize: +document.getElementById('tagSize').value,
+    tagSpacing: +document.getElementById('tagSpacing').value,
+    iconStyle: document.getElementById('iconStyle').value,
+    iconColor: document.getElementById('iconColor').value,
+    iconOpacity: +document.getElementById('iconOpacity').value,
+    iconSize: +document.getElementById('iconSize').value,
+    accentColor: document.getElementById('accentColor').value,
+    accentOpacity: +document.getElementById('accentOpacity').value,
+    accentWidth: +document.getElementById('accentWidth').value,
+    noiseOpacity: +document.getElementById('noiseOpacity').value,
+  };
+}
+
+function setState(s) {
+  document.getElementById('bgColor').value = s.bgColor;
+  document.getElementById('width').value = s.width;
+  document.getElementById('height').value = s.height;
+  document.getElementById('titleColor').value = s.titleColor;
+  document.getElementById('titleSize').value = s.titleSize;
+  document.getElementById('titleSpacing').value = s.titleSpacing;
+  document.getElementById('titleOpacity').value = s.titleOpacity;
+  document.getElementById('tagline').value = s.tagline;
+  document.getElementById('tagColor').value = s.tagColor;
+  document.getElementById('tagSize').value = s.tagSize;
+  document.getElementById('tagSpacing').value = s.tagSpacing;
+  document.getElementById('iconStyle').value = s.iconStyle;
+  document.getElementById('iconColor').value = s.iconColor;
+  document.getElementById('iconOpacity').value = s.iconOpacity;
+  document.getElementById('iconSize').value = s.iconSize;
+  document.getElementById('accentColor').value = s.accentColor;
+  document.getElementById('accentOpacity').value = s.accentOpacity;
+  document.getElementById('accentWidth').value = s.accentWidth;
+  document.getElementById('noiseOpacity').value = s.noiseOpacity;
+}
+
+function getIcon(style, color, opacity, size) {
+  const o = opacity / 100;
+  const cx = 0; const cy = 0;
+  const r = size / 2;
+  if (style === 'ghost') {
+    return `<g transform="translate(${cx}, ${cy})" opacity="${o}" fill="${color}">
+      <ellipse cx="0" cy="-${r*0.15}" rx="${r*0.4}" ry="${r*0.5}" />
+      <rect x="-${r*0.4}" y="-${r*0.15}" width="${r*0.8}" height="${r*0.45}" />
+      <path d="M-${r*0.4} ${r*0.3} Q-${r*0.4} ${r*0.5} -${r*0.27} ${r*0.38} Q-${r*0.13} ${r*0.5} 0 ${r*0.38} Q${r*0.13} ${r*0.5} ${r*0.27} ${r*0.38} Q${r*0.4} ${r*0.5} ${r*0.4} ${r*0.3} Z" />
+      <circle cx="-${r*0.15}" cy="-${r*0.25}" r="${r*0.08}" fill="${getState().bgColor}" />
+      <circle cx="${r*0.15}" cy="-${r*0.25}" r="${r*0.08}" fill="${getState().bgColor}" />
+    </g>`;
+  }
+  if (style === 'skull') {
+    return `<g transform="translate(${cx}, ${cy})" opacity="${o}" fill="none" stroke="${color}" stroke-width="1.5">
+      <ellipse cx="0" cy="-${r*0.1}" rx="${r*0.38}" ry="${r*0.45}" />
+      <circle cx="-${r*0.14}" cy="-${r*0.18}" r="${r*0.1}" />
+      <circle cx="${r*0.14}" cy="-${r*0.18}" r="${r*0.1}" />
+      <line x1="0" y1="${r*0.02}" x2="0" y2="${r*0.15}" />
+      <line x1="-${r*0.08}" y1="${r*0.25}" x2="-${r*0.08}" y2="${r*0.4}" />
+      <line x1="0" y1="${r*0.25}" x2="0" y2="${r*0.42}" />
+      <line x1="${r*0.08}" y1="${r*0.25}" x2="${r*0.08}" y2="${r*0.4}" />
+      <path d="M-${r*0.2} ${r*0.25} Q0 ${r*0.35} ${r*0.2} ${r*0.25}" fill="none" />
+    </g>`;
+  }
+  if (style === 'crosshair') {
+    return `<g transform="translate(${cx}, ${cy})" opacity="${o}" fill="none" stroke="${color}" stroke-width="1">
+      <circle cx="0" cy="0" r="${r*0.4}" />
+      <circle cx="0" cy="0" r="${r*0.15}" />
+      <line x1="0" y1="-${r*0.5}" x2="0" y2="-${r*0.25}" />
+      <line x1="0" y1="${r*0.25}" x2="0" y2="${r*0.5}" />
+      <line x1="-${r*0.5}" y1="0" x2="-${r*0.25}" y2="0" />
+      <line x1="${r*0.25}" y1="0" x2="${r*0.5}" y2="0" />
+    </g>`;
+  }
+  return '';
+}
+
+function buildSVG() {
+  const s = getState();
+  const cx = s.width / 2;
+  const cy = s.height / 2;
+  const titleY = cy - 5;
+  const tagY = titleY + s.titleSize * 0.55;
+  const accentY = titleY - s.titleSize * 0.45;
+  const accentX = cx - s.accentWidth / 2;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s.width} ${s.height}" width="${s.width}" height="${s.height}">
+  <defs>
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="${s.width}" height="${s.height}" fill="${s.bgColor}" />
+
+  <!-- noise grain -->
+  <rect width="${s.width}" height="${s.height}" filter="url(#noise)" opacity="${s.noiseOpacity / 100}" />
+
+  <!-- icon watermark -->
+  <g transform="translate(${cx}, ${cy})">
+    ${getIcon(s.iconStyle, s.iconColor, s.iconOpacity, s.iconSize)}
+  </g>
+
+  <!-- accent line -->
+  <rect x="${accentX}" y="${accentY}" width="${s.accentWidth}" height="1" fill="${s.accentColor}" opacity="${s.accentOpacity / 100}" rx="0.5" />
+
+  <!-- title -->
+  <text x="${cx}" y="${titleY}" text-anchor="middle" dominant-baseline="central"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif"
+    font-size="${s.titleSize}" font-weight="700" letter-spacing="${s.titleSpacing}"
+    fill="${s.titleColor}" opacity="${s.titleOpacity / 100}">gone</text>
+
+  <!-- tagline -->
+  <text x="${cx}" y="${tagY}" text-anchor="middle"
+    font-family="'SF Mono', 'Fira Code', 'Cascadia Code', monospace"
+    font-size="${s.tagSize}" font-weight="400" letter-spacing="${s.tagSpacing}"
+    fill="${s.tagColor}">${s.tagline}</text>
+</svg>`;
+}
+
+function update() {
+  const s = getState();
+  // update value displays
+  document.getElementById('bgColorVal').textContent = s.bgColor;
+  document.getElementById('widthVal').textContent = s.width;
+  document.getElementById('heightVal').textContent = s.height;
+  document.getElementById('titleColorVal').textContent = s.titleColor;
+  document.getElementById('titleSizeVal').textContent = s.titleSize;
+  document.getElementById('titleSpacingVal').textContent = s.titleSpacing;
+  document.getElementById('titleOpacityVal').textContent = s.titleOpacity + '%';
+  document.getElementById('tagColorVal').textContent = s.tagColor;
+  document.getElementById('tagSizeVal').textContent = s.tagSize;
+  document.getElementById('tagSpacingVal').textContent = s.tagSpacing;
+  document.getElementById('iconColorVal').textContent = s.iconColor;
+  document.getElementById('iconOpacityVal').textContent = s.iconOpacity + '%';
+  document.getElementById('iconSizeVal').textContent = s.iconSize;
+  document.getElementById('accentColorVal').textContent = s.accentColor;
+  document.getElementById('accentOpacityVal').textContent = s.accentOpacity + '%';
+  document.getElementById('accentWidthVal').textContent = s.accentWidth;
+  document.getElementById('noiseOpacityVal').textContent = s.noiseOpacity + '%';
+  document.getElementById('sizeLabel').textContent = `${s.width} x ${s.height}`;
+
+  document.getElementById('previewContainer').innerHTML = buildSVG();
+}
+
+function applyPreset(name) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  setState(PRESETS[name]);
+  update();
+}
+
+function copySVG() {
+  navigator.clipboard.writeText(buildSVG()).then(() => {
+    const fb = document.getElementById('feedback');
+    fb.textContent = 'SVG copied!';
+    fb.classList.add('show');
+    setTimeout(() => fb.classList.remove('show'), 1500);
+  });
+}
+
+function downloadSVG() {
+  const blob = new Blob([buildSVG()], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gone-banner.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function downloadPNG() {
+  const s = getState();
+  const svg = buildSVG();
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = s.width * 2;
+    canvas.height = s.height * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+    ctx.drawImage(img, 0, 0);
+    canvas.toBlob(pngBlob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(pngBlob);
+      a.download = 'gone-banner.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, 'image/png');
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+// init
+update();
+</script>
+</body>
+</html>

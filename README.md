@@ -1,78 +1,185 @@
-# gone
+<div align="center">
 
-A macOS TUI for hunting down and removing every last trace of uninstalled tools — caches, configs, shell RC lines, the works. Plus a live system monitor because why not.
+<img src="assets/banner.png" alt="gone" width="100%" />
 
-Built with Go, [Bubble Tea v2](https://github.com/charmbracelet/bubbletea), and [Lipgloss](https://github.com/charmbracelet/lipgloss).
+<br>
+<br>
 
-## What it does
+A macOS TUI that hunts down every trace of uninstalled tools<br>
+and sends them where they belong.
 
-**Uninstall tab** — type a name, hit Enter, and `gone` scans your entire system for matching files, directories, and shell RC references. Select what to trash with Space, preview details in the side pane, hit Enter to send them to macOS Trash (with Put Back support).
+<br>
 
-**Monitor tab** — live CPU, RAM, swap, and disk gauges with a sortable process table. Press `1`-`4` to sort by CPU/Mem/RSS/PID.
+[Install](#install) · [How it works](#how-it-works) · [Keys](#keys) · [Stack](#stack)
+
+<br>
+
+---
+
+</div>
+
+<br>
+
+## The problem
+
+You drag an app to Trash. macOS says it's gone.
+
+It's not.
+
+`~/Library/Caches` · `~/Library/Application Support` · `~/.config` · `/usr/local` · shell RC exports · PATH modifications — hundreds of megabytes of ghost data from tools you deleted months ago. Still there. Still taking space. Still polluting your shell.
+
+<br>
+
+## How it works
+
+```
+  gone                                    Uninstall · Monitor
+ ─────────────────────────────────────────────────────────────
+
+  Search: claude_
+
+  ┌─ Results ──────────────────┐  ┌─ Preview ──────────────┐
+  │                            │  │                        │
+  │  ● ~/Library/Caches/clau…  │  │  Type       directory  │
+  │    ~/Library/Logs/claude…  │  │  Size       48.2 MB    │
+  │  ● ~/.config/claude/       │  │  Modified   2 days ago │
+  │    ~/.zshrc :14            │  │                        │
+  │                            │  │  ├── config.json       │
+  │                            │  │  ├── credentials       │
+  │                            │  │  └── sessions/         │
+  │                            │  │                        │
+  └────────────────────────────┘  └────────────────────────┘
+
+  2 selected · 48.6 MB                           [?] help
+```
+
+Type a name. Hit Enter. Select what to remove. Trash it.
+
+Files go to macOS Trash via Finder AppleScript — not `rm`. You can always **Put Back**.
+
+<br>
 
 ## Install
 
 ```bash
-cd gone && go build -o gone ./cmd/gone
+go build -o gone ./cmd/gone
 ./gone
 ```
 
+<br>
+
 ## Keys
 
-| Key | Action |
-|-----|--------|
-| `Tab` | Switch between Uninstall / Monitor |
+| | |
+|:--|:--|
+| `Tab` | Switch between Uninstall and Monitor |
 | `Enter` | Scan (in search) · Trash selected (in list) |
 | `Space` | Toggle selection |
 | `/` | Filter results |
-| `Esc` | Back to search input |
+| `Esc` | Back to search |
 | `?` | Help overlay |
-| `q` · `Ctrl+C` | Quit |
+| `q` | Quit |
 
-## How it finds things
+<br>
 
-- Parallel filesystem walk ([fastwalk](https://github.com/charlievieth/fastwalk)) across `~/Library`, `/usr/local`, `~/.config`, `~/.local`, `/opt`, and more
-- Shell RC scanner — checks `.zshrc`, `.bashrc`, `.bash_profile`, `.profile`, `.zshenv`, `.zprofile` for matching lines
-- Files go to macOS Trash via Finder AppleScript (not `rm`) — you can always Put Back
+## What it scans
 
-## Tech
+Parallel filesystem walk via [fastwalk](https://github.com/charlievieth/fastwalk) across every location where macOS tools leave traces:
+
+```
+~/Library/Caches                App caches
+~/Library/Application Support   App data, configs
+~/Library/Preferences           Plist files
+~/Library/Logs                  App logs
+~/.config                       XDG configs
+~/.local                        User binaries, data
+/usr/local                      Homebrew, manual installs
+/opt                            System packages
+```
+
+Plus shell RC files — `.zshrc`, `.bashrc`, `.profile`, `.zshenv`, `.zprofile`, `.bash_profile` — scanned line by line for matching exports, PATH entries, and aliases.
+
+Results are size-coded: **green** under 1 MB · **yellow** under 100 MB · **red** over 100 MB.
+
+<br>
+
+## Monitor
+
+The second tab. Live system dashboard with real-time gauges for CPU, memory, swap, and disk usage. Sortable process table underneath.
 
 | | |
-|---|---|
-| Language | Go 1.26 |
-| TUI | Bubble Tea v2 + Bubbles v2 |
-| Styling | Lipgloss v2 |
-| Filesystem | charlievieth/fastwalk |
-| System metrics | gopsutil v4 |
-| Trash | osascript + Finder |
+|:--|:--|
+| `1` | Sort by CPU |
+| `2` | Sort by Memory |
+| `3` | Sort by RSS |
+| `4` | Sort by PID |
 
-## Project Structure
+<br>
+
+## Stack
+
+| | |
+|:--|:--|
+| Go 1.26 | |
+| [Bubble Tea v2](https://github.com/charmbracelet/bubbletea) | TUI framework |
+| [Lipgloss v2](https://github.com/charmbracelet/lipgloss) | Styling |
+| [fastwalk](https://github.com/charlievieth/fastwalk) | Parallel filesystem walk |
+| [gopsutil v4](https://github.com/shirou/gopsutil) | System metrics |
+| osascript | macOS Trash via Finder |
+
+<br>
+
+## Structure
 
 ```
 gone/
-├── cmd/gone/main.go           # Entry point
+├── cmd/gone/main.go              entry point
 ├── internal/
 │   ├── scanner/
-│   │   ├── scanner.go         # Parallel file scanner
-│   │   ├── locations.go       # Scan paths & skip dirs
-│   │   └── rcscanner.go       # Shell RC file scanner
+│   │   ├── scanner.go            parallel file scanner
+│   │   ├── locations.go          scan paths & skip lists
+│   │   └── rcscanner.go          shell RC line scanner
 │   ├── remover/
-│   │   ├── trash.go           # macOS Trash via osascript
-│   │   └── log.go             # JSONL operation log
+│   │   ├── trash.go              macOS Trash via osascript
+│   │   └── log.go                JSONL operation log
 │   ├── sysinfo/
-│   │   └── sysinfo.go         # gopsutil wrapper
+│   │   └── sysinfo.go            gopsutil wrapper
 │   └── tui/
-│       ├── app.go             # Root model + tab routing
-│       ├── uninstall.go       # Search → scan → select → trash
-│       ├── monitor.go         # Live gauges + process table
-│       └── styles.go          # Lipgloss theme
-└── orchestrator/
-    └── supervisor.ts          # Build orchestrator (Bun/TS)
+│       ├── app.go                root model, tab routing
+│       ├── uninstall.go          search → scan → select → trash
+│       ├── monitor.go            live gauges, process table
+│       └── styles.go             lipgloss theme
 ```
 
-## Collaborators
+<br>
 
-| | |
-|---|---|
-| **Agustin** | Creator, designer, orchestrator wrangler |
-| **Claude Opus 4.6** | Code, architecture, research, bugfixes — **MAD MAX** |
+---
+
+<br>
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center" width="50%">
+
+**yasku**
+
+Creator · Designer
+
+</td>
+<td align="center" width="50%">
+
+**MAD MAX**
+
+<sub>Claude Opus 4.6, reborn</sub>
+
+</td>
+</tr>
+</table>
+
+<br>
+
+<sub>Built from scratch in one session. Research first. Build second. Ship third.</sub>
+
+</div>
