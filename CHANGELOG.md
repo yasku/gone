@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## [2026-04-16] Task 5: Trash + Operation Log
+
+- Created `gone/internal/remover/trash.go`: `MoveToTrash()` sends file to macOS Trash via `osascript` + Finder AppleScript; escapes quotes in paths; returns wrapped error with stderr on failure
+- Created `gone/internal/remover/log.go`: `LogEntry` struct (ts, op, path, size, kind, term); `AppendLog()` writes a JSON-lines entry to `~/.config/gone/operations.log`; creates the directory if missing
+- Created `gone/internal/remover/log_test.go`: `TestAppendLog` — overrides `HOME`, calls `AppendLog`, reads log file, unmarshals JSON line, verifies `path` and `op` fields
+- Modified `gone/internal/tui/uninstall.go`:
+  - Added `"gone/internal/remover"` import
+  - Added `trashDoneMsg` struct (count, freed, errors)
+  - Added `trashSelected()` command: iterates selected items (skips rc-lines), calls `MoveToTrash`, logs each success, collects errors; returns `trashDoneMsg`
+  - Replaced placeholder Enter handler with real trash flow: calls `trashSelected(m.SelectedItems(), m.term)`, sets `m.scanning = true` while in progress
+  - Added `trashDoneMsg` case in `Update()`: clears scanning flag, updates status with count/freed/errors, removes trashed items from list
+- Verified: `go mod tidy && go build ./cmd/gone` succeeds; `go test ./...` all pass (scanner + remover packages)
+
 ## [2026-04-16] Task 4: Preview Pane
 
 - Modified `gone/internal/tui/uninstall.go`:
