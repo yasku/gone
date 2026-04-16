@@ -1,0 +1,295 @@
+package tui
+
+import (
+	"fmt"
+	"io"
+	"strings"
+
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"gone/internal/scanner"
+)
+
+// --- Item type for the list ---
+
+type fileItem struct {
+	path     string
+	size     int64
+	modTime  string
+	kind     string
+	selected bool
+}
+
+func (f fileItem) FilterValue() string { return f.path }
+func (f fileItem) Title() string       { return f.path }
+func (f fileItem) Description() string {
+	return fmt.Sprintf("%s  %s  %s", f.kind, HumanSize(f.size), f.modTime)
+}
+
+// --- Custom delegate ---
+
+type fileDelegate struct {
+	styles Styles
+}
+
+func (d fileDelegate) Height() int                             { return 1 }
+func (d fileDelegate) Spacing() int                            { return 0 }
+func (d fileDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d fileDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	f, ok := item.(fileItem)
+	if !ok {
+		return
+	}
+	check := "[ ]"
+	if f.selected {
+		check = "[x]"
+	}
+	cursor := "  "
+	if index == m.Index() {
+		cursor = "> "
+	}
+
+	sizeStr := HumanSize(f.size)
+	line := fmt.Sprintf("%s%s %-50s %8s  %s", cursor, check, truncate(f.path, 50), sizeStr, f.modTime)
+
+	if index == m.Index() {
+		fmt.Fprint(w, d.styles.Cursor.Render(line))
+	} else if f.selected {
+		fmt.Fprint(w, d.styles.Selected.Render(line))
+	} else {
+		fmt.Fprint(w, line)
+	}
+}
+
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return "…" + s[len(s)-max+1:]
+}
+
+// --- Scan result message ---
+
+type scanResultMsg struct {
+	items []fileItem
+}
+
+func runFullScan(term string) tea.Cmd {
+	return func() tea.Msg {
+		var items []fileItem
+
+		// File scan
+		matches, _ := scanner.Search(term, scanner.ScanPaths)
+		for _, m := range matches {
+			size := m.Size
+			if m.IsDir {
+				size = scanner.DirSize(m.Path)
+			}
+			items = append(items, fileItem{
+				path:    m.Path,
+				size:    size,
+				modTime: m.ModTime.Format("2006-01-02"),
+				kind:    m.Kind,
+			})
+		}
+
+		// RC scan
+		rcMatches := scanner.SearchRC(term)
+		for _, rc := range rcMatches {
+			items = append(items, fileItem{
+				path:    fmt.Sprintf("%s:%d", rc.File, rc.LineNum),
+				size:    int64(len(rc.Line)),
+				modTime: "",
+				kind:    "rc-line",
+			})
+		}
+
+		return scanResultMsg{items: items}
+	}
+}
+
+// --- Focus state ---
+
+type focus int
+
+const (
+	focusSearch focus = iota
+	focusList
+)
+
+// --- Uninstall model ---
+
+type UninstallModel struct {
+	textinput textinput.Model
+	spinner   spinner.Model
+	list      list.Model
+	styles    Styles
+	focus     focus
+	scanning  bool
+	width     int
+	height    int
+	term      string
+	status    string
+}
+
+func NewUninstallModel() UninstallModel {
+	ti := textinput.New()
+	ti.Placeholder = "Type a name to search (e.g. claude, nvm, rustup)..."
+	ti.Focus()
+	ti.CharLimit = 128
+
+	sp := spinner.New()
+	sp.Spinner = spinner.Dot
+
+	delegate := fileDelegate{styles: DefaultStyles()}
+	l := list.New([]list.Item{}, delegate, 0, 0)
+	l.SetShowTitle(false)
+	l.SetShowHelp(false)
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(true)
+	l.DisableQuitKeybindings()
+
+	return UninstallModel{
+		textinput: ti,
+		spinner:   sp,
+		list:      l,
+		styles:    DefaultStyles(),
+		focus:     focusSearch,
+	}
+}
+
+func (m UninstallModel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		key := msg.String()
+
+		switch m.focus {
+		case focusSearch:
+			switch key {
+			case "enter":
+				term := strings.TrimSpace(m.textinput.Value())
+				if term == "" {
+					return m, nil
+				}
+				m.term = term
+				m.scanning = true
+				m.status = fmt.Sprintf("Scanning for %q…", term)
+				return m, tea.Batch(m.spinner.Tick, runFullScan(term))
+			case "esc":
+				return m, tea.Quit
+			}
+
+		case focusList:
+			switch key {
+			case " ":
+				item, ok := m.list.SelectedItem().(fileItem)
+				if ok {
+					item.selected = !item.selected
+					cmd := m.list.SetItem(m.list.Index(), item)
+					cmds = append(cmds, cmd)
+				}
+				return m, tea.Batch(cmds...)
+			case "esc":
+				m.focus = focusSearch
+				m.textinput.Focus()
+				return m, textinput.Blink
+			case "enter":
+				m.status = "ENTER pressed — trash wired in Task 5"
+				return m, nil
+			}
+		}
+
+	case scanResultMsg:
+		m.scanning = false
+		items := make([]list.Item, len(msg.items))
+		for i, it := range msg.items {
+			items[i] = it
+		}
+		m.list.SetItems(items)
+		m.focus = focusList
+		m.textinput.Blur()
+		m.status = fmt.Sprintf("Found %d matches for %q", len(msg.items), m.term)
+		return m, nil
+
+	case spinner.TickMsg:
+		if m.scanning {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+	}
+
+	// Route to focused component
+	switch m.focus {
+	case focusSearch:
+		var cmd tea.Cmd
+		m.textinput, cmd = m.textinput.Update(msg)
+		cmds = append(cmds, cmd)
+	case focusList:
+		var cmd tea.Cmd
+		m.list, cmd = m.list.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+func (m UninstallModel) SetSize(w, h int) UninstallModel {
+	m.width = w
+	m.height = h
+	m.textinput.SetWidth(w - 6)
+	m.list.SetSize(w-4, h-6)
+	return m
+}
+
+func (m UninstallModel) View() string {
+	var b strings.Builder
+
+	// Search bar
+	b.WriteString(m.styles.SearchBar.Width(m.width - 6).Render(m.textinput.View()))
+	b.WriteString("\n")
+
+	if m.scanning {
+		b.WriteString("\n  " + m.spinner.View() + " " + m.status + "\n")
+	} else if len(m.list.Items()) > 0 {
+		b.WriteString(m.list.View())
+	} else if m.term != "" {
+		b.WriteString("\n  No matches found.\n")
+	}
+
+	// Status bar
+	selected := 0
+	var totalSize int64
+	for _, item := range m.list.Items() {
+		if f, ok := item.(fileItem); ok && f.selected {
+			selected++
+			totalSize += f.size
+		}
+	}
+	status := m.status
+	if selected > 0 {
+		status = fmt.Sprintf("%d selected (%s) — Enter to trash", selected, HumanSize(totalSize))
+	}
+	bar := m.styles.StatusBar.Width(m.width - 4).Render(status)
+	b.WriteString("\n" + bar)
+
+	return b.String()
+}
+
+func (m UninstallModel) SelectedItems() []fileItem {
+	var sel []fileItem
+	for _, item := range m.list.Items() {
+		if f, ok := item.(fileItem); ok && f.selected {
+			sel = append(sel, f)
+		}
+	}
+	return sel
+}
