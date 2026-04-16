@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## [v1.0.0] — 2026-04-16
+
+First stable release. `gone` is a macOS uninstaller and system monitor TUI built in Go with Bubble Tea v2.
+
+### Features
+
+- **Uninstall tab** — instant filesystem search across `~/Library/Caches`, `~/Library/Application Support`, `~/Library/Preferences`, `~/Library/Logs`, `~/.config`, `~/.local`, `/usr/local`, `/opt`; parallel walk via fastwalk
+- **Shell RC scanning** — detects `export`, `PATH`, `alias`, `source` matches in `.zshrc`, `.bashrc`, `.bash_profile`, `.profile`, `.zshenv`, `.zprofile` with exact file and line number
+- **Preview pane** — directory tree, file metadata, modified timestamp
+- **Multi-select** with Space, trash with Enter; size-coded results (green/yellow/red by file size)
+- **Safe removal** via macOS Trash through Finder AppleScript — Put Back always works; operations logged to `~/.config/gone/operations.log`
+- **Monitor tab** — live CPU/RAM/Swap/Disk gauges, process table with 4 sort modes (CPU%, Mem%, RSS, PID), 2s auto-refresh
+- **Root model** with Tab switching and help overlay (`?`)
+
+### Documentation
+
+- README with full Usage, Install, Stack, Project structure sections
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`
+- Issue and Pull Request templates in `.github/`
+- MIT license
+
+### Stack
+
+- Go 1.26
+- Bubble Tea v2, Lipgloss v2, Bubbles v2
+- fastwalk for parallel filesystem traversal
+- gopsutil v4 for system metrics
+- osascript for Trash integration
+
+---
+
 ## [2026-04-16] Task 8: Polish
 
 - Modified `gone/internal/tui/uninstall.go`: updated `fileDelegate.Render()` to color-code file sizes — green (`SizeSmall`) for <1 MB, yellow (`SizeMedium`) for 1 MB–100 MB, red (`SizeLarge`) for ≥100 MB; added dim-text rendering for file kind column in the list row
