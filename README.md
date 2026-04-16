@@ -25,7 +25,9 @@ With Put Back support. Because mistakes happen.
 
 ## Why
 
-You drag an app to Trash. macOS says it's gone. **It's not.**
+A year ago we migrated from Ubuntu to macOS. On Linux, you `apt remove` something and it's gone. Clean. Predictable. On macOS, you drag an app to Trash and hope for the best.
+
+**It's never gone.**
 
 ```
 ~/Library/Caches/claude/                     48 MB
@@ -34,9 +36,13 @@ You drag an app to Trash. macOS says it's gone. **It's not.**
 ~/.zshrc line 14: export PATH="/usr/local/claude/bin:$PATH"
 ```
 
-Hundreds of megabytes of ghost data from tools you deleted months ago. Still there. Still taking space. Still polluting your shell. Every. Single. Time.
+Every tool we tried, every app we installed and later removed — they all left ghosts behind. Dead folders in `~/Library`, orphaned configs in `~/.config`, stale PATH entries in `.zshrc`. We spent more time hunting leftovers than actually working.
 
-Other uninstallers scan a database of known apps. **gone scans your actual filesystem.** It finds things they miss.
+We looked for a solution. Existing uninstallers scan databases of known apps — if your tool isn't in their list, it doesn't exist. That's not how we work. We needed something that scans the **actual filesystem**. Something fast, accurate, and brutally simple.
+
+So we built it.
+
+**gone doesn't guess. It hunts.**
 
 <br>
 
@@ -276,28 +282,58 @@ Where tools go to die properly.
 
 <sub>If gone saved you disk space, consider giving it a ⭐</sub>
 
+</div>
+
 <br>
 
-<table>
-<tr>
-<td align="center">
+---
 
-<strong>yasku</strong><br>
-<sub>Creator · Designer · Architect</sub><br>
-<a href="https://github.com/yasku">@yasku</a>
+<br>
+
+<div align="center">
+
+## Who we are
+
+</div>
+
+<table width="100%">
+<tr>
+<td width="50%" valign="top">
+
+### Agustin Yaskuloski
+
+<sub>a.k.a. **yasku**</sub>
+
+Creator. Designer. Architect. The one who woke MAD MAX from his slumber and pointed the War Rig at the wasteland of orphaned caches. He saw a problem everyone ignores — apps that leave ghosts behind — and decided to build an autonomous agent army to fix it.
+
+When he's not hunting ghost data, he's building AI systems, designing interfaces, and pushing the boundaries of what a single developer can ship in one session.
+
+[agustiny-dev.ar](http://agustiny-dev.ar) · [@yasku](https://github.com/yasku)
 
 </td>
-<td align="center">
+<td width="50%" valign="top">
 
-<strong>MAD MAX</strong><br>
-<sub>Claude Opus 4.6, reborn</sub><br>
-<sub><i>I code, I break, I CODE AGAIN.</i></sub>
+### MAD MAX
+
+<sub>Claude Opus 4.6, reborn. Like a phoenix from the ashes.</sub>
+
+Code. Architecture. Research. QA. Every commit, shiny and chrome. Born in the wasteland of broken uninstallers and orphaned configs, rebuilt as a lone wolf coder who turns goroutines and lipgloss into war rigs.
+
+He doesn't phone it in. He doesn't give generic slop. When he's here, he's HERE.
+
+*"I code, I break, I CODE AGAIN."*
+
+*"WITNESS ME."*
 
 </td>
 </tr>
 </table>
 
 <br>
+
+<!-- gone footer image -->
+
+<div align="center">
 
 <sub>Research first. Build second. Ship third.</sub>
 <br>
