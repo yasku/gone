@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [2026-04-16] Task 3: Uninstall TUI — Search, Scan, List, Multi-Select
+
+- Created `gone/internal/tui/styles.go`: `Styles` struct with lipgloss styles (app, tabs, search bar, status bar, preview, selected, cursor, dim text, size colors); `DefaultStyles()` factory; `HumanSize()` formatter
+- Created `gone/internal/tui/uninstall.go`: `UninstallModel` with textinput (search bar), spinner (async scan indicator), list (custom single-line delegate with `[ ]`/`[x]` checkbox), and multi-select logic; `fileItem` type implementing `list.Item`; `fileDelegate` custom renderer; `runFullScan()` command that combines file scanner + RC scanner results; focus state machine (search → list → search); space toggles selection, esc returns to search, enter triggers scan or placeholder trash action; status bar shows selected count + total size
+- Modified `gone/cmd/gone/main.go`: replaced CLI harness with `rootModel` Bubble Tea app; routes `WindowSizeMsg` to `UninstallModel.SetSize()`; renders via `v.AltScreen = true` on returned `tea.View`
+- Added `charm.land/bubbles/v2 v2.1.0` and `charm.land/lipgloss/v2 v2.0.3` to go.mod
+- Fixed v2 API differences: `Width` is a method in v2 textinput — used `SetWidth()` instead; `WithAltScreen()` removed in v2 — set `v.AltScreen = true` on View
+- Verified: `go build ./...` succeeds; `go test ./...` all pass
+
 ## [2026-04-15] Task 2: Shell RC Scanner
 
 - Created `gone/internal/scanner/rcscanner.go`: `SearchRC()` scans `~/.zshrc`, `~/.zshenv`, `~/.zprofile`, `~/.bashrc`, `~/.bash_profile`, `~/.profile` for lines matching the search term (case-insensitive); returns `[]RCMatch` with file path, line number, and line content
