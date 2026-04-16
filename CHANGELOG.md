@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [2026-04-15] Task 2: Shell RC Scanner
+
+- Created `gone/internal/scanner/rcscanner.go`: `SearchRC()` scans `~/.zshrc`, `~/.zshenv`, `~/.zprofile`, `~/.bashrc`, `~/.bash_profile`, `~/.profile` for lines matching the search term (case-insensitive); returns `[]RCMatch` with file path, line number, and line content
+- Created `gone/internal/scanner/rcscanner_test.go`: `TestSearchRCFindsMatchingLines` — writes a temp `.zshrc`, overrides `RCFiles` and `HOME`, verifies 2 matches for "claude" at lines 2 and 4
+- Modified `gone/cmd/gone/main.go`: added RC scan after file scan results; summary line now shows `N files + M rc lines in Xs`
+- Verified: `go run ./cmd/gone claude` returns 154 files + 8 rc lines in ~1.1s
+
 ## [2026-04-15] Task 1: File Scanner
 
 - Created `gone/internal/scanner/locations.go`: scan root paths and skip-dirs map
