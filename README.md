@@ -108,6 +108,8 @@ brew install yasku/tap/gone
 
 ## Usage
 
+<div align="center">
+
 ```
   gone                                    Uninstall · Monitor
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -128,6 +130,8 @@ brew install yasku/tap/gone
 
   2 selected · 48.6 MB                           [?] help
 ```
+
+</div>
 
 1. **Type** a tool name
 2. **Enter** to scan
