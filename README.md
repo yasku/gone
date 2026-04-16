@@ -10,6 +10,15 @@
 [![Bubble Tea](https://img.shields.io/badge/Bubble_Tea-v2-FF75B7?style=flat-square)](https://github.com/charmbracelet/bubbletea)
 [![License](https://img.shields.io/badge/license-MIT-171717?style=flat-square)](LICENSE)
 
+[![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757?style=flat-square&logo=anthropic&logoColor=white)](https://claude.com/claude-code)
+[![Powered by MAD MAX](https://img.shields.io/badge/Powered_by-MAD_MAX-FF4500?style=flat-square&logo=ghostery&logoColor=white)](#who-we-are)
+[![Made by yasku](https://img.shields.io/badge/Made_by-yasku-171717?style=flat-square&logo=githubsponsors&logoColor=white)](http://agustiny-dev.ar)
+
+[![GitHub stars](https://img.shields.io/github/stars/yasku/gone?style=flat-square&logo=github&color=171717)](https://github.com/yasku/gone/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/yasku/gone?style=flat-square&color=171717)](https://github.com/yasku/gone/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/yasku/gone?style=flat-square&color=171717)](https://github.com/yasku/gone/commits/main)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-00ADD8?style=flat-square)](CONTRIBUTING.md)
+
 **You deleted the app. But it's still here.**
 
 gone finds every trace — caches, configs, logs, shell RC lines — and sends them to Trash.<br>
@@ -335,9 +344,12 @@ He doesn't phone it in. He doesn't give generic slop. When he's here, he's HERE.
 
 <br>
 
-<!-- gone footer image -->
-
 <div align="center">
+
+<img src="assets/banner.png" alt="gone — hunt. select. trash." width="100%" />
+
+<br>
+<br>
 
 <sub>Research first. Build second. Ship third.</sub>
 <br>
