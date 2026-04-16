@@ -110,21 +110,21 @@ brew install yasku/tap/gone
 
 ```
   gone                                    Uninstall · Monitor
- ─────────────────────────────────────────────────────────────
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-  Search: claude_
+  Search: claude |
 
-  ┌─ Results ──────────────────┐  ┌─ Preview ──────────────┐
-  │                            │  │                        │
-  │  ● ~/Library/Caches/clau…  │  │  Type       directory  │
-  │    ~/Library/Logs/claude…  │  │  Size       48.2 MB    │
-  │  ● ~/.config/claude/       │  │  Modified   2 days ago │
-  │    ~/.zshrc :14            │  │                        │
-  │                            │  │  ├── config.json       │
-  │                            │  │  ├── credentials       │
-  │                            │  │  └── sessions/         │
-  │                            │  │                        │
-  └────────────────────────────┘  └────────────────────────┘
+  ┌─ Results ──────────────────┐       ┌─ Preview ──────────────┐
+  │                            │       │                        │
+  │  ● ~/Library/Caches/clau…  │       │  Type       directory  │
+  │    ~/Library/Logs/claude…  │       │  Size       48.2 MB    │
+  │  ● ~/.config/claude/       │       │  Modified   2 days ago │
+  │    ~/.zshrc :14            │       │                        │
+  │                            │       │  ├── config.json       │
+  │                            │       │  ├── credentials       │
+  │                            │       │  └── sessions/         │
+  │                            │       │                        │
+  └────────────────────────────┘       └────────────────────────┘
 
   2 selected · 48.6 MB                           [?] help
 ```
