@@ -1,0 +1,71 @@
+name: Bug Report
+description: Something in gone is broken
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Fill in what you can — partial reports are better than none. Please search existing issues first.
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      description: Output of `sw_vers -productVersion`
+      placeholder: "14.4"
+    validations:
+      required: true
+  - type: input
+    id: go
+    attributes:
+      label: Go version
+      description: Output of `go version`
+      placeholder: "go1.26 darwin/arm64"
+    validations:
+      required: true
+  - type: input
+    id: gone-version
+    attributes:
+      label: gone version or commit SHA
+      placeholder: "3064ed4 or v0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: |
+        1. Run `gone`
+        2. Type `...`
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: |
+        Paste output from `~/Library/Application Support/gone/operations.jsonl` if relevant. Redact anything sensitive.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate
+          required: true
+        - label: I can reproduce this on the latest `main`
+          required: true

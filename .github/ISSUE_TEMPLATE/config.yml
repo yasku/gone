@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussion
+    url: https://github.com/yasku/gone/discussions
+    about: Questions, ideas, or open-ended conversation go here.
+  - name: Security vulnerability
+    url: https://github.com/yasku/gone/security/policy
+    about: Please do not file security issues publicly. See SECURITY.md.
