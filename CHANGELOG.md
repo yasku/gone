@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [2026-04-16] Task 6: System Monitor
+
+- Created `gone/internal/sysinfo/sysinfo.go`: `Snapshot` struct (CPU%, MemTotal/Used/Avail, Swap, Disk, top-N processes); `TakeSnapshot(topN int)` collects data via gopsutil v4 (cpu, mem, disk, process packages); `HumanBytes()` formatter; processes sorted by CPU% descending
+- Created `gone/internal/sysinfo/sysinfo_test.go`: `TestTakeSnapshotReturnsData` verifies MemTotal, DiskTotal, and Procs are non-zero
+- Created `gone/internal/tui/monitor.go`: `MonitorModel` with `refreshMsg` + `doRefresh()` tea.Tick every 2s; `SetSize()` for layout; `View()` renders 4 system gauges (CPU/RAM/Swap/Disk) via lipgloss bordered boxes + process table with header, separator, highlighted cursor row; keyboard navigation (↑/↓, sort keys 1-4); `sortedProcs()` re-sorts by Mem/RSS/PID or keeps CPU order
+- Adapted from plan: replaced `evertras/bubble-table` (which targets bubbletea v1) with a manual lipgloss table to avoid v1/v2 type incompatibility; same visual layout and interactive sorting preserved
+- Added `github.com/shirou/gopsutil/v4 v4.26.3` to go.mod
+- Verified: `go build ./...` succeeds; `go test ./...` all pass (5/5 tests)
+
 ## [2026-04-16] Task 5: Trash + Operation Log
 
 - Created `gone/internal/remover/trash.go`: `MoveToTrash()` sends file to macOS Trash via `osascript` + Finder AppleScript; escapes quotes in paths; returns wrapped error with stderr on failure
