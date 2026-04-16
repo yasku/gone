@@ -3,47 +3,29 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
-	tea "charm.land/bubbletea/v2"
+	"gone/internal/scanner"
 )
 
-type model struct {
-	width, height int
-	ready         bool
-}
-
-func (m model) Init() tea.Cmd { return nil }
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
-		if msg.String() == "q" || msg.String() == "ctrl+c" {
-			return m, tea.Quit
-		}
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.ready = true
-	}
-	return m, nil
-}
-
-func (m model) View() tea.View {
-	if !m.ready {
-		v := tea.NewView("loading...")
-		v.AltScreen = true
-		return v
-	}
-	s := fmt.Sprintf("  gone — terminal: %d×%d\n\n  Press q to quit.\n", m.width, m.height)
-	v := tea.NewView(s)
-	v.AltScreen = true
-	return v
-}
-
 func main() {
-	p := tea.NewProgram(model{})
-	if _, err := p.Run(); err != nil {
+	if len(os.Args) < 2 {
+		fmt.Fprintln(os.Stderr, "usage: gone <search-term>")
+		os.Exit(1)
+	}
+	term := os.Args[1]
+	fmt.Printf("Scanning for %q...\n", term)
+
+	start := time.Now()
+	results, err := scanner.Search(term, scanner.ScanPaths)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+	elapsed := time.Since(start)
+
+	for _, m := range results {
+		fmt.Printf("  [%s] %s  (%d bytes, %s)\n", m.Kind, m.Path, m.Size, m.ModTime.Format("2006-01-02"))
+	}
+	fmt.Printf("\n%d matches in %s\n", len(results), elapsed)
 }

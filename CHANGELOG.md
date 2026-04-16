@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## [2026-04-15] Task 1: File Scanner
+
+- Created `gone/internal/scanner/locations.go`: scan root paths and skip-dirs map
+- Created `gone/internal/scanner/scanner.go`: `Search()` using fastwalk for parallel file discovery; `DirSize()` helper
+- Created `gone/internal/scanner/scanner_test.go`: two tests — finds matching files/dirs, skips `node_modules`
+- Modified `gone/cmd/gone/main.go`: CLI test harness; `go run ./cmd/gone <term>` prints all matches with kind/size/date
+- Added `github.com/charlievieth/fastwalk v1.0.14` to go.mod
+- Fixed test: renamed `main.bin` → `foo-main.bin` so both a dir and a file match "foo"
+- Verified: 154 matches for "claude" in ~1.1s (<3s target)
+
 ## [2026-04-15] Task 0: Scaffold + Hello World
 
 - Created `gone/` Go module with `go mod init gone`
