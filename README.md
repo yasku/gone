@@ -365,7 +365,7 @@ He doesn't phone it in. He doesn't give generic slop. When he's here, he's HERE.
 
 <div align="center">
 
-<img src="assets/banner.png" alt="gone — hunt. select. trash." width="100%" />
+<img src="assets/gone-banner.png" alt="gone — macOS uninstaller for the obsessed" width="100%" />
 
 <br>
 <br>
