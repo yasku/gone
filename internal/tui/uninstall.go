@@ -245,14 +245,17 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 
 		case focusList:
 			switch key {
-			case " ":
-				item, ok := m.list.SelectedItem().(fileItem)
-				if ok {
-					item.selected = !item.selected
-					cmd := m.list.SetItem(m.list.Index(), item)
-					cmds = append(cmds, cmd)
+			case " ", "space":
+				idx := m.list.Index()
+				items := m.list.Items()
+				if idx >= 0 && idx < len(items) {
+					if f, ok := items[idx].(fileItem); ok {
+						f.selected = !f.selected
+						items[idx] = f
+						m.list.SetItem(idx, f)
+					}
 				}
-				return m, tea.Batch(cmds...)
+				return m, nil
 			case "esc":
 				m.focus = focusSearch
 				cmd := m.textinput.Focus()
@@ -331,9 +334,11 @@ func (m UninstallModel) SetSize(w, h int) UninstallModel {
 	m.width = w
 	m.height = h
 	m.textinput.SetWidth(w - 6)
-	listW := w/2 - 2
+	total := w - 2
+	listW := total * 3 / 5
+	previewW := total - listW - 4
 	m.list.SetSize(listW, h-6)
-	m.viewport.SetWidth(w/2 - 4)
+	m.viewport.SetWidth(previewW)
 	m.viewport.SetHeight(h - 6)
 	m.showPreview = w > 80
 	return m
@@ -382,15 +387,18 @@ func (m UninstallModel) View() string {
 	if m.scanning {
 		b.WriteString("\n  " + m.spinner.View() + " " + m.status + "\n")
 	} else if len(m.list.Items()) > 0 {
-		listView := m.list.View()
 		if m.showPreview {
+			total := m.width - 2
+			listW := total * 3 / 5
+			previewContentW := total - listW - 4
+			listView := lipgloss.NewStyle().Width(listW).Render(m.list.View())
 			previewView := m.styles.Preview.
-				Width(m.width/2 - 4).
+				Width(previewContentW).
 				Height(m.height - 8).
 				Render(m.viewport.View())
 			b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, listView, previewView))
 		} else {
-			b.WriteString(listView)
+			b.WriteString(m.list.View())
 		}
 	} else if m.term != "" {
 		b.WriteString("\n  No matches found.\n")
