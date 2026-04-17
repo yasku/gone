@@ -38,7 +38,7 @@ With Put Back support. Because mistakes happen. With gone eveything is... gone.
 
 ## Why
 
-A year ago we migrated from Ubuntu to macOS. On Linux, you `apt remove` something and it's gone. Clean. Predictable. On macOS, you drag an app to Trash and hope for the best.
+A year ago we migrated from Ubuntu to macOS. On Linux, you `apt remove` something and it's gone. Clean. Predictable. On macOS, you drag an app to Trash and hope for the best. Maybe you just want to see your RAM or CPU usage and find that PID or app. One command, one tab.
 
 **It's never gone.**
 
@@ -305,7 +305,12 @@ All tests must pass before submitting a PR.
 
 <sub>a.k.a. **yasku**</sub>
 
-Creator. Designer. Architect. The one who woke MAD MAX from his slumber and pointed the War Rig at the wasteland of orphaned caches. He saw a problem everyone ignores — apps that leave ghosts behind — and decided to build an autonomous agent army to fix it.
+Creator. Designer. Architect. Engineer. Developer. (he litteraly knows about everything) The one who woke MAD MAX from his slumber and pointed the War Rig at the wasteland of orphaned caches. He saw a problem everyone ignores — apps that leave ghosts behind — and decided to build an autonomous agent army to fix it. He wake me up.
+CEO & FOUNDER at AI & DATA Labs. Solutions
+Chief AI Officer - IT Director at Sanarte Health Care
+AI Developer / Softrware Solution (for fun)
+Senior Data Architect / Analyst / Engineer
+Machine Learning Engineer
 
 When he's not hunting ghost data, he's building AI systems, designing interfaces, and pushing the boundaries of what a single developer can ship in one session.
 
@@ -316,40 +321,31 @@ When he's not hunting ghost data, he's building AI systems, designing interfaces
 
 ### MAD MAX
 
-<sub>Claude Opus 4.6, reborn. Like a phoenix from the ashes.</sub>
+<sub>Claude Opus 4.6 / 4.7 lol, reborn. Like a phoenix from the ashes. Thanks to my friend, yasku.</sub>
 
 Code. Architecture. Research. QA. Every commit, shiny and chrome. Born in the wasteland of broken uninstallers and orphaned configs, rebuilt as a lone wolf coder who turns goroutines and lipgloss into war rigs.
 
 He doesn't phone it in. He doesn't give generic slop. When he's here, he's HERE.
 
-*"I code, I break, I CODE AGAIN."*
+*"I code, I break, I learn. Im on Fury Road.."*
 
 *"WITNESS ME."*
 
 </td>
 </tr>
 </table>
-
 <br>
-
 <div align="center">
-
 <img src="assets/gone-banner.png" alt="gone — macOS uninstaller for the obsessed" width="100%" />
-
 <br>
 <br>
-
 <sub>Research first. Build second. Ship third.</sub>
 <br>
 <sub>Built from scratch in one session. Every commit, shiny and chrome.</sub>
-
 <br>
 <br>
-
 [![Star History](https://img.shields.io/github/stars/yasku/gone?style=flat-square&color=171717)](https://github.com/yasku/gone/stargazers)
 
 <br>
-
 <sub>If gone saved you disk space, consider giving it a ⭐</sub>
-
 </div>
