@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/progress"
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
@@ -35,7 +36,8 @@ func (f fileItem) Description() string {
 // --- Custom delegate ---
 
 type fileDelegate struct {
-	styles Styles
+	styles  Styles
+	maxSize int64
 }
 
 func (d fileDelegate) Height() int                             { return 1 }
@@ -66,9 +68,23 @@ func (d fileDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		sizeStr = d.styles.SizeLarge.Render(sizeStr)
 	}
 
-	path := truncate(f.path, 50)
+	// Mini progress bar (static, no animation)
+	var barStr string
+	if d.maxSize > 0 {
+		pct := float64(f.size) / float64(d.maxSize)
+		p := progress.New(
+			progress.WithColors(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")),
+			progress.WithoutPercentage(),
+			progress.WithWidth(10),
+		)
+		barStr = p.ViewAs(pct)
+	} else {
+		barStr = strings.Repeat("░", 10)
+	}
+
+	path := truncate(f.path, 45)
 	kind := d.styles.DimText.Render(f.kind)
-	line := fmt.Sprintf("%s%s %-50s %s %8s  %s", cursor, check, path, kind, sizeStr, f.modTime)
+	line := fmt.Sprintf("%s%s %-45s %s %s %8s  %s", cursor, check, path, kind, barStr, sizeStr, f.modTime)
 
 	if index == m.Index() {
 		fmt.Fprint(w, d.styles.Cursor.Render(line))
@@ -278,6 +294,14 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 			items[i] = it
 		}
 		m.list.SetItems(items)
+		// Compute maxSize for relative progress bars
+		var maxSz int64
+		for _, it := range msg.items {
+			if it.size > maxSz {
+				maxSz = it.size
+			}
+		}
+		m.list.SetDelegate(fileDelegate{styles: m.styles, maxSize: maxSz})
 		m.focus = focusList
 		m.textinput.Blur()
 		m.status = fmt.Sprintf("Found %d matches for %q", len(msg.items), m.term)
@@ -396,7 +420,10 @@ func (m UninstallModel) View() string {
 			listW := total * 3 / 5
 			previewContentW := total - listW - 4
 			listView := lipgloss.NewStyle().Width(listW).Render(m.list.View())
-			previewView := m.styles.Preview.
+			previewView := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForegroundBlend(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")).
+				Padding(0, 1).
 				Width(previewContentW).
 				Height(m.height - 8).
 				Render(m.viewport.View())
