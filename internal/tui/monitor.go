@@ -213,6 +213,9 @@ func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
 			if row == table.HeaderRow {
 				return headerStyle
 			}
+			if row == m.cursor {
+				return m.styles.CursorRow
+			}
 			if col == 2 && row >= 0 && row < len(procs) { // CPU% column
 				pct := procs[row].CPU
 				switch {
