@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [2026-04-17] Fix preview pane alignment
+
+- Fixed `internal/tui/uninstall.go`: wrapped `m.list.View()` in `lipgloss.NewStyle().Width(listW).Render(...)` so the preview pane anchors correctly to the right regardless of list item length
+
 ## [2026-04-16] Open source launch governance
 
 - Created `LICENSE` (MIT, copyright Agustin Yaskuloski 2026)
