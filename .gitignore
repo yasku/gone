@@ -8,8 +8,20 @@ dist/
 # Backups (pre-bugfix snapshots)
 backups/
 
-# Orchestrator logs
-orchestrator/logs/
+# Orchestrator & agents (working tooling — not part of the shipped product)
+agents/
+orchestrator/
+
+# Docs (working memory: plans, specs, research, transcripts — not part of the shipped product)
+docs/
+
+# Claude / AI tooling
+.claude/
+.firecrawl/
+CLAUDE.md
+DESIGN.md
+entities.json
+mempalace.yaml
 
 # OS
 .DS_Store
