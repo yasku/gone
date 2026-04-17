@@ -381,7 +381,11 @@ func (m UninstallModel) View() string {
 	var b strings.Builder
 
 	// Search bar (full width)
-	b.WriteString(m.styles.SearchBar.Width(m.width - 6).Render(m.textinput.View()))
+	searchStyle := m.styles.SearchBar
+	if m.focus == focusSearch {
+		searchStyle = m.styles.SearchBarActive
+	}
+	b.WriteString(searchStyle.Width(m.width - 6).Render(m.textinput.View()))
 	b.WriteString("\n")
 
 	if m.scanning {

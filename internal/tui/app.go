@@ -166,24 +166,43 @@ func (m AppModel) View() tea.View {
 
 	var b strings.Builder
 
-	// Tab bar
-	uninstallTab := " Uninstall "
-	monitorTab := " Monitor "
+	// Header bar: tabs (left) + GONE branding (right)
+	var uninstallTab, monitorTab string
+	activeTabSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00BCD4")).Padding(0, 1)
+	inactiveTabSt := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 1)
 	if m.active == tabUninstall {
-		uninstallTab = m.styles.TabActive.Render(uninstallTab)
-		monitorTab = m.styles.TabInactive.Render(monitorTab)
+		uninstallTab = activeTabSt.Render("◉ Uninstall")
+		monitorTab = inactiveTabSt.Render("○ Monitor")
 	} else {
-		uninstallTab = m.styles.TabInactive.Render(uninstallTab)
-		monitorTab = m.styles.TabActive.Render(monitorTab)
+		uninstallTab = inactiveTabSt.Render("○ Uninstall")
+		monitorTab = activeTabSt.Render("◉ Monitor")
 	}
-	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, uninstallTab, monitorTab)
-	tabLine := lipgloss.NewStyle().
+	tabs := lipgloss.JoinHorizontal(lipgloss.Center, uninstallTab, "  ", monitorTab)
+
+	goneLogo := gradientText("G O N E")
+	tagline := lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true).Render("hunt. select. trash.")
+	brand := goneLogo + "  " + tagline
+
+	// Calculate spacer to push brand to the right
+	tabsW := lipgloss.Width(tabs)
+	brandW := lipgloss.Width(brand)
+	contentW := m.width - 4 // 2 padding + 2 margin
+	spacerW := contentW - tabsW - brandW
+	if spacerW < 1 {
+		spacerW = 1
+	}
+	headerContent := tabs + strings.Repeat(" ", spacerW) + brand
+
+	header := lipgloss.NewStyle().
+		Width(m.width - 2).
+		PaddingLeft(1).
+		PaddingRight(1).
 		BorderBottom(true).
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		Width(m.width - 4).
-		Render(tabBar)
-	b.WriteString(tabLine)
+		BorderForegroundBlend(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")).
+		Render(headerContent)
+
+	b.WriteString(header)
 	b.WriteString("\n")
 
 	// Content
