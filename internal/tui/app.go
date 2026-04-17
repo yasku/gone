@@ -61,6 +61,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showHelp = !m.showHelp
 			return m, nil
 		}
+		if m.showHelp {
+			return m, nil // swallow all keys while help overlay is active
+		}
 		if msg.String() == "tab" {
 			if m.active == tabUninstall {
 				m.active = tabMonitor
