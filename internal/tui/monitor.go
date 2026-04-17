@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/progress"
 	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/table"
 	"gone/internal/sysinfo"
 )
 
@@ -170,29 +171,11 @@ func (m MonitorModel) View() string {
 	sortHint := m.styles.DimText.Render("Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓ navigate")
 	b.WriteString("  " + sortHint + "\n\n")
 
-	// Process table header
-	header := fmt.Sprintf("  %-8s %-25s %8s %8s %12s", "PID", "Name", "CPU%", "MEM%", "RSS")
-	b.WriteString(m.styles.DimText.Render(header) + "\n")
-	b.WriteString(m.styles.DimText.Render("  "+strings.Repeat("─", m.width-6)) + "\n")
-
 	// Sort procs
 	procs := m.sortedProcs()
 
-	// Process rows
-	for i, p := range procs {
-		line := fmt.Sprintf("  %-8d %-25s %s %8.1f %12s",
-			p.PID,
-			truncateName(p.Name, 25),
-			colorCPU(p.CPU),
-			p.Mem,
-			sysinfo.HumanBytes(p.RSS),
-		)
-		if i == m.cursor {
-			b.WriteString(m.styles.Cursor.Render(line) + "\n")
-		} else {
-			b.WriteString(line + "\n")
-		}
-	}
+	// Process table
+	b.WriteString(m.buildTable(procs))
 
 	return b.String()
 }
@@ -206,6 +189,58 @@ func (m MonitorModel) gaugeView(label, value string, bar progress.Model) string 
 		Padding(0, 2).
 		Width(m.width/4 - 4).
 		Render(title + "\n" + bar.View() + "\n" + val)
+}
+
+func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#9B59B6")).
+		Align(lipgloss.Center)
+
+	cellStyle := lipgloss.NewStyle().Padding(0, 1)
+
+	oddRow := cellStyle.Foreground(lipgloss.Color("252"))
+	evenRow := cellStyle.Foreground(lipgloss.Color("245"))
+
+	borderStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240"))
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(borderStyle).
+		Headers("PID", "Name", "CPU%", "MEM%", "RSS").
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == table.HeaderRow {
+				return headerStyle
+			}
+			if col == 2 && row > 0 && row-1 < len(procs) { // CPU% column
+				pct := procs[row-1].CPU
+				switch {
+				case pct >= 70.0:
+					return cellStyle.Foreground(lipgloss.Color("#FF6B6B"))
+				case pct >= 30.0:
+					return cellStyle.Foreground(lipgloss.Color("#FFDD57"))
+				default:
+					return cellStyle.Foreground(lipgloss.Color("#69FF94"))
+				}
+			}
+			if row%2 == 0 {
+				return evenRow
+			}
+			return oddRow
+		})
+
+	for _, p := range procs {
+		t.Row(
+			fmt.Sprintf("%d", p.PID),
+			truncateName(p.Name, 25),
+			fmt.Sprintf("%.1f", p.CPU),
+			fmt.Sprintf("%.1f", p.Mem),
+			sysinfo.HumanBytes(p.RSS),
+		)
+	}
+
+	return t.Render()
 }
 
 func (m MonitorModel) sortedProcs() []sysinfo.ProcInfo {
@@ -222,18 +257,6 @@ func (m MonitorModel) sortedProcs() []sysinfo.ProcInfo {
 		sort.Slice(procs, func(i, j int) bool { return procs[i].PID < procs[j].PID })
 	}
 	return procs
-}
-
-func colorCPU(pct float64) string {
-	s := fmt.Sprintf("%8.1f", pct)
-	switch {
-	case pct >= 70.0:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render(s) // red
-	case pct >= 30.0:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFDD57")).Render(s) // yellow
-	default:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#69FF94")).Render(s) // green
-	}
 }
 
 func truncateName(s string, max int) string {
