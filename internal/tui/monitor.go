@@ -213,8 +213,8 @@ func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
 			if row == table.HeaderRow {
 				return headerStyle
 			}
-			if col == 2 && row > 0 && row-1 < len(procs) { // CPU% column
-				pct := procs[row-1].CPU
+			if col == 2 && row >= 0 && row < len(procs) { // CPU% column
+				pct := procs[row].CPU
 				switch {
 				case pct >= 70.0:
 					return cellStyle.Foreground(lipgloss.Color("#FF6B6B"))
