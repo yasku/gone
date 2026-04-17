@@ -17,7 +17,10 @@ type LogEntry struct {
 }
 
 func logPath() string {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = os.Getenv("HOME")
+	}
 	return filepath.Join(home, ".config", "gone", "operations.log")
 }
 
