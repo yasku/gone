@@ -21,6 +21,7 @@ type Styles struct {
 	SizeSmall       lipgloss.Style
 	SizeMedium      lipgloss.Style
 	SizeLarge       lipgloss.Style
+	CursorRow       lipgloss.Style
 }
 
 func DefaultStyles() Styles {
@@ -41,6 +42,10 @@ func DefaultStyles() Styles {
 		SizeSmall:   lipgloss.NewStyle().Foreground(lipgloss.Color("120")),
 		SizeMedium:  lipgloss.NewStyle().Foreground(lipgloss.Color("178")),
 		SizeLarge:   lipgloss.NewStyle().Foreground(lipgloss.Color("167")),
+		CursorRow: lipgloss.NewStyle().
+			Background(lipgloss.Color("#1A1A2E")).
+			Foreground(lipgloss.Color("#00BCD4")).
+			Bold(true),
 	}
 }
 

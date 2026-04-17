@@ -87,7 +87,7 @@ func (d fileDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	line := fmt.Sprintf("%s%s %-45s %s %s %8s  %s", cursor, check, path, kind, barStr, sizeStr, f.modTime)
 
 	if index == m.Index() {
-		fmt.Fprint(w, d.styles.Cursor.Render(line))
+		fmt.Fprint(w, d.styles.CursorRow.Render(line))
 	} else if f.selected {
 		fmt.Fprint(w, d.styles.Selected.Render(line))
 	} else {
