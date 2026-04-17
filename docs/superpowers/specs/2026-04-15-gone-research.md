@@ -327,6 +327,48 @@ func DefaultStyles() Styles {
 }
 ```
 
+## Pattern: Spinner (bubbles/v2 options API)
+
+```go
+import "charm.land/bubbles/v2/spinner"
+
+s := spinner.New(
+    spinner.WithSpinner(spinner.Globe),  // Globe, Dot, Line, Pulse, MiniDot, Hamburger
+    spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#9B59B6"))),
+)
+// Init:   return s.Tick
+// Update: case spinner.TickMsg: m.spinner, cmd = m.spinner.Update(msg)
+// View:   m.spinner.View()
+```
+
+## Pattern: lipgloss.Place (center content in terminal)
+
+```go
+centered := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+```
+
+## Pattern: BorderForegroundBlend (gradient border)
+
+```go
+style := lipgloss.NewStyle().
+    Border(lipgloss.RoundedBorder()).
+    BorderForegroundBlend(
+        lipgloss.Color("#9B59B6"),
+        lipgloss.Color("#00BCD4"),
+    ).
+    Padding(1, 4)
+```
+
+## Pattern: AltScreen via tea.View
+
+```go
+func (m Model) View() tea.View {
+    v := tea.NewView(content)
+    v.AltScreen = true
+    return v
+}
+```
+
 ## Gotchas Cheat Sheet
 
 | Issue | Fix |

@@ -12,7 +12,7 @@ import (
 type splashDoneMsg struct{}
 
 func splashDone() tea.Cmd {
-	return tea.Tick(800*time.Millisecond, func(t time.Time) tea.Msg {
+	return tea.Tick(2500*time.Millisecond, func(t time.Time) tea.Msg {
 		return splashDoneMsg{}
 	})
 }
