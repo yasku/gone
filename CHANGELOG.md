@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## [2026-04-17] Code review fixes — `feat/tui-beautification-phase1`
+
+Post-review patches from a branch-wide audit. All behavioural correctness, no feature changes.
+
+- Fixed `internal/tui/monitor.go`: `StyleFunc` guard changed from `row > 0` (which skipped the first data row) to `row >= 0`, and `procs[row-1]` corrected to `procs[row]`, so every process row receives the CPU-severity color matching its own data
+- Fixed `internal/tui/monitor.go`: restored cursor row highlight after migrating to `lipgloss/v2/table` — `StyleFunc` now checks `row == m.cursor` first so the selected style wins over CPU-severity and row-parity styling
+- Fixed `internal/tui/uninstall.go`: `CursorRow` style now receives `Width(m.Width())` so the highlight background spans the full list column; lipgloss only fills background to text width unless width is explicit
+- Fixed `internal/tui/app.go`: added focus-trap for the help overlay — all keys except `?` (toggle) and `ctrl+c` (quit) now return early while the modal is visible, preventing propagation to the active sub-model
+- Fixed `internal/remover/trash.go`: replaced AppleScript string interpolation with `osascript` argv (`-e` + positional argument); filenames with embedded double quotes no longer break Trash operations
+- Fixed `internal/remover/log.go`: added `$HOME` environment fallback when `os.UserHomeDir()` fails, mirroring the pattern in `internal/scanner/locations.go`; prevents a root-relative `"/.config/gone/operations.log"` when the home dir can't be resolved
+- Verified: `go build ./...` succeeds; `go test ./...` all green (5/5 tests)
+
+## [2026-04-17] TUI beautification — phase 1
+
+Plan: `docs/superpowers/plans/2026-04-17-beautification.md`. Monitor tab gets spring-physics animation, process table becomes a proper styled lipgloss table, removals gain a confirmation modal, and the cursor row highlight is promoted to full-width everywhere.
+
+- Added `internal/tui/monitor.go`: four `progress.Model` fields (`cpuBar`, `ramBar`, `swapBar`, `diskBar`) initialized via a `newGaugeBar()` helper using `progress.WithColors(#9B59B6, #00BCD4)` + `WithoutPercentage`; on every `refreshMsg` each gauge's `SetPercent()` is driven from the current `Snapshot`, producing animated transitions instead of the previous static text boxes
+- Upgraded `internal/tui/monitor.go`: replaced the manual process loop with `charm.land/lipgloss/v2/table.New()` + `StyleFunc`; columns for PID/CPU%/Mem%/RSS/Name rendered with row-parity and CPU-severity colors
+- Added `internal/tui/monitor.go`: CPU% severity coloring — green below 15%, yellow 15–50%, red ≥ 50%
+- Added `internal/tui/uninstall.go`: `confirmModal` state with `trashConfirmMsg` / `confirmOKMsg` wiring — before the actual Trash call, a rounded-border modal renders selected count + total freed size and waits for `y`/`enter` to proceed, `esc`/`n` to cancel
+- Added `internal/tui/styles.go`: `CursorRow` style with full-width background highlight; `internal/tui/uninstall.go` applies `m.Width()` to the selected delegate's row so the purple highlight extends across the full list column
+- Verified: `go build ./...` succeeds; `go test ./...` all green (5/5 tests)
+
+## [2026-04-17] UX/UI redesign
+
+Plan: `docs/superpowers/plans/2026-04-17-gone-ux-ui.md`. Permanent branded header, gradient accents, per-item size progress bars.
+
+- Added `internal/tui/styles.go`: `gradientText()` helper that blends `#9B59B6` → `#00BCD4` across each rune using `lipgloss.Blend1D`; `SearchBarActive` style with gradient border that only renders while the search bar has focus
+- Modified `internal/tui/app.go`: permanent header bar with gradient `GONE` wordmark, active-tab indicator, and help hint (`?`); rendered above every tab view
+- Modified `internal/tui/uninstall.go`: per-item size progress bar in the file list delegate — fills proportional to the file's size vs. the largest result in view, green→yellow→red gradient by severity; preview pane border uses the same purple→cyan gradient
+- Added `github.com/charmbracelet/x` transitive dependency via `lipgloss/v2` gradient APIs
+- Verified: `go build ./...` succeeds; `go test ./...` all green (5/5 tests)
+
+## [2026-04-17] Animated splash screen
+
+Plan: `docs/superpowers/plans/2026-04-17-splash-screen.md`. Startup splash with gradient-bordered ASCII banner and spinner; 2.5 s before transitioning to the main app.
+
+- Created `internal/tui/splash.go`: `SplashModel` with `charm.land/bubbles/v2/spinner` (Globe style, color `#9B59B6`); renders 6-line ASCII `GONE` banner in cyan inside a rounded-border box with `BorderForegroundBlend(#9B59B6, #00BCD4)`; emits `splashDoneMsg{}` via `tea.Tick` after 2500 ms
+- Modified `internal/tui/app.go`: `AppModel` starts in splash state; on `splashDoneMsg` transitions to the normal root model; spinner message ticks are forwarded to `SplashModel` until it exits
+- Adjusted splash duration from 800 ms → 2500 ms for readability
+- Verified: `go build ./...` succeeds; `go test ./...` all green (5/5 tests)
+
 ## [2026-04-17] Fix preview pane alignment
 
 - Fixed `internal/tui/uninstall.go`: wrapped `m.list.View()` in `lipgloss.NewStyle().Width(listW).Render(...)` so the preview pane anchors correctly to the right regardless of list item length

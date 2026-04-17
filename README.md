@@ -70,20 +70,21 @@ So we built it.
 - **Instant search** — type a name, scan in seconds
 - **Parallel filesystem walk** — hunts across 10+ locations simultaneously
 - **Shell RC detection** — finds exports, PATH entries, aliases in your dotfiles
-- **Preview pane** — inspect files before removing
+- **Preview pane** — inspect files before removing (gradient border)
 - **Multi-select** — Space to toggle, Enter to trash
+- **Confirmation modal** — review selection + total size before it's gone
 - **Safe removal** — files go to macOS Trash, not `rm`
-- **Size-coded results** — see what's eating your disk at a glance
+- **Per-item size bars** — instantly see what's eating your disk
 
 </td>
 <td width="50%">
 
 ### Monitor
 
-- **Live system gauges** — CPU, RAM, swap, disk
-- **Process table** — sorted by resource usage
+- **Animated system gauges** — spring-physics progress bars for CPU, RAM, swap, disk
+- **Styled process table** — lipgloss/v2 table with CPU-severity coloring
 - **4 sort modes** — CPU, memory, RSS, PID
-- **Auto-refresh** — real-time updates
+- **Auto-refresh** — 2 s real-time updates
 - **Zero config** — just press Tab
 
 </td>
@@ -258,10 +259,11 @@ gone/
 │   ├── sysinfo/
 │   │   └── sysinfo.go          gopsutil wrapper
 │   └── tui/
-│       ├── app.go              root model, tab routing, help overlay
-│       ├── uninstall.go        search → scan → select → trash flow
-│       ├── monitor.go          live gauges, process table
-│       └── styles.go           lipgloss theme (monocromatic)
+│       ├── app.go              root model, tab routing, gradient header, help overlay
+│       ├── splash.go           animated startup splash (gradient banner + spinner)
+│       ├── uninstall.go        search → scan → select → confirm → trash flow
+│       ├── monitor.go          animated gauges, styled process table
+│       └── styles.go           lipgloss theme (gradient accents)
 ```
 
 <br>
