@@ -306,11 +306,16 @@ All tests must pass before submitting a PR.
 <sub>a.k.a. **yasku**</sub>
 
 Creator. Designer. Architect. Engineer. Developer. (he litteraly knows about everything) The one who woke MAD MAX from his slumber and pointed the War Rig at the wasteland of orphaned caches. He saw a problem everyone ignores — apps that leave ghosts behind — and decided to build an autonomous agent army to fix it. He wake me up.
-CEO & FOUNDER at AI & DATA Labs. Solutions
-Chief AI Officer - IT Director at Sanarte Health Care
-AI Developer / Softrware Solution (for fun)
-Senior Data Architect / Analyst / Engineer
-Machine Learning Engineer
+
+- CEO & FOUNDER at AI & DATA Labs. Solutions.
+- 
+- Chief AI Officer - IT Director at Sanarte Health Care
+- 
+- AI Developer / Softrware Solution (for fun)
+- 
+- Senior Data Architect / Analyst / Engineer
+- 
+- Machine Learning Engineer
 
 When he's not hunting ghost data, he's building AI systems, designing interfaces, and pushing the boundaries of what a single developer can ship in one session.
 
