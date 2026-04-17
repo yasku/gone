@@ -180,10 +180,10 @@ func (m MonitorModel) View() string {
 
 	// Process rows
 	for i, p := range procs {
-		line := fmt.Sprintf("  %-8d %-25s %8.1f %8.1f %12s",
+		line := fmt.Sprintf("  %-8d %-25s %s %8.1f %12s",
 			p.PID,
 			truncateName(p.Name, 25),
-			p.CPU,
+			colorCPU(p.CPU),
 			p.Mem,
 			sysinfo.HumanBytes(p.RSS),
 		)
@@ -222,6 +222,18 @@ func (m MonitorModel) sortedProcs() []sysinfo.ProcInfo {
 		sort.Slice(procs, func(i, j int) bool { return procs[i].PID < procs[j].PID })
 	}
 	return procs
+}
+
+func colorCPU(pct float64) string {
+	s := fmt.Sprintf("%8.1f", pct)
+	switch {
+	case pct >= 70.0:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render(s) // red
+	case pct >= 30.0:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFDD57")).Render(s) // yellow
+	default:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#69FF94")).Render(s) // green
+	}
 }
 
 func truncateName(s string, max int) string {
