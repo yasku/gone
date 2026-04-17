@@ -344,7 +344,6 @@ He doesn't phone it in. He doesn't give generic slop. When he's here, he's HERE.
 <sub>Built from scratch in one session. Every commit, shiny and chrome.</sub>
 <br>
 <br>
-[![Star History](https://img.shields.io/github/stars/yasku/gone?style=flat-square&color=171717)](https://github.com/yasku/gone/stargazers)
 
 <br>
 <sub>If gone saved you disk space, consider giving it a ⭐</sub>
