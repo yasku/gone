@@ -15,27 +15,32 @@ const (
 )
 
 type AppModel struct {
-	active    activeTab
-	uninstall UninstallModel
-	monitor   MonitorModel
-	styles    Styles
-	width     int
-	height    int
-	ready     bool
-	showHelp  bool
+	active     activeTab
+	uninstall  UninstallModel
+	monitor    MonitorModel
+	splash     SplashModel
+	styles     Styles
+	width      int
+	height     int
+	ready      bool
+	showSplash bool
+	showHelp   bool
 }
 
 func NewApp() AppModel {
 	return AppModel{
-		active:    tabUninstall,
-		uninstall: NewUninstallModel(),
-		monitor:   NewMonitorModel(),
-		styles:    DefaultStyles(),
+		active:     tabUninstall,
+		uninstall:  NewUninstallModel(),
+		monitor:    NewMonitorModel(),
+		splash:     NewSplashModel(),
+		styles:     DefaultStyles(),
+		showSplash: true,
 	}
 }
 
 func (m AppModel) Init() tea.Cmd {
 	return tea.Batch(
+		m.splash.Init(),
 		m.uninstall.Init(),
 		m.monitor.Init(),
 	)
@@ -45,6 +50,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case splashDoneMsg:
+		m.showSplash = false
+		return m, nil
 	case tea.KeyPressMsg:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -69,6 +77,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.uninstall = m.uninstall.SetSize(msg.Width, contentHeight)
 		m.monitor = m.monitor.SetSize(msg.Width, contentHeight)
 		m.ready = true
+	}
+
+	// Forward all messages to splash while it is active
+	if m.showSplash {
+		var cmd tea.Cmd
+		m.splash, cmd = m.splash.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	// Always route refresh ticks to monitor (prevents freeze)
@@ -102,6 +117,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m AppModel) View() tea.View {
 	if !m.ready {
 		v := tea.NewView("loading...")
+		v.AltScreen = true
+		return v
+	}
+
+	if m.showSplash {
+		v := tea.NewView(m.splash.View())
 		v.AltScreen = true
 		return v
 	}
