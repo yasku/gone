@@ -188,18 +188,19 @@ const (
 // --- Uninstall model ---
 
 type UninstallModel struct {
-	textinput   textinput.Model
-	spinner     spinner.Model
-	list        list.Model
-	viewport    viewport.Model
-	styles      Styles
-	focus       focus
-	scanning    bool
-	showPreview bool
-	width       int
-	height      int
-	term        string
-	status      string
+	textinput      textinput.Model
+	spinner        spinner.Model
+	list           list.Model
+	viewport       viewport.Model
+	styles         Styles
+	focus          focus
+	scanning       bool
+	showPreview    bool
+	confirmPending bool
+	width          int
+	height         int
+	term           string
+	status         string
 }
 
 func NewUninstallModel() UninstallModel {
@@ -238,6 +239,23 @@ func (m UninstallModel) Init() tea.Cmd {
 
 func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 	var cmds []tea.Cmd
+
+	if m.confirmPending {
+		if key, ok := msg.(tea.KeyPressMsg); ok {
+			switch key.String() {
+			case "enter":
+				m.confirmPending = false
+				sel := m.SelectedItems()
+				m.status = fmt.Sprintf("Trashing %d items…", len(sel))
+				m.scanning = true
+				return m, trashSelected(sel, m.term)
+			case "esc":
+				m.confirmPending = false
+				return m, nil
+			}
+		}
+		return m, nil // swallow all other input while confirm is up
+	}
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
@@ -281,9 +299,8 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 				if len(sel) == 0 {
 					return m, nil
 				}
-				m.status = fmt.Sprintf("Trashing %d items…", len(sel))
-				m.scanning = true
-				return m, trashSelected(sel, m.term)
+				m.confirmPending = true
+				return m, nil
 			}
 		}
 
@@ -402,6 +419,10 @@ func previewContent(item fileItem) string {
 }
 
 func (m UninstallModel) View() string {
+	if m.confirmPending {
+		return m.confirmView()
+	}
+
 	var b strings.Builder
 
 	// Search bar (full width)
@@ -452,6 +473,25 @@ func (m UninstallModel) View() string {
 	b.WriteString("\n" + bar)
 
 	return b.String()
+}
+
+func (m UninstallModel) confirmView() string {
+	sel := m.SelectedItems()
+	var total int64
+	for _, s := range sel {
+		total += s.size
+	}
+	msg := fmt.Sprintf(
+		"  Trash %d item(s) (%s)?\n\n  [Enter] Confirm    [Esc] Cancel",
+		len(sel), HumanSize(total),
+	)
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForegroundBlend(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")).
+		Padding(1, 3).
+		Width(44).
+		Render(msg)
+	return lipgloss.Place(m.width, m.height-4, lipgloss.Center, lipgloss.Center, box)
 }
 
 func (m UninstallModel) SelectedItems() []fileItem {
