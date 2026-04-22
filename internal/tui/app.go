@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
@@ -14,12 +16,62 @@ const (
 	tabMonitor
 )
 
+// goneKeyMap defines all keybindings and satisfies the help.KeyMap interface.
+// FullHelp is tab-aware: Monitor shows filter/kill/sort, Uninstall shows search/select/trash.
+type goneKeyMap struct {
+	active  activeTab
+	Tab     key.Binding
+	Help    key.Binding
+	Quit    key.Binding
+	Search  key.Binding
+	Space   key.Binding
+	Enter   key.Binding
+	Escape  key.Binding
+	Filter  key.Binding
+	Kill    key.Binding
+	NavUD   key.Binding
+	SortNum key.Binding
+}
+
+func defaultKeyMap() goneKeyMap {
+	return goneKeyMap{
+		Tab:     key.NewBinding(key.WithKeys("tab"),                    key.WithHelp("tab",    "switch tabs")),
+		Help:    key.NewBinding(key.WithKeys("?"),                       key.WithHelp("?",      "toggle help")),
+		Quit:    key.NewBinding(key.WithKeys("ctrl+c"),                 key.WithHelp("ctrl+c", "quit")),
+		Search:  key.NewBinding(key.WithKeys("enter"),                  key.WithHelp("enter",  "search")),
+		Space:   key.NewBinding(key.WithKeys(" "),                      key.WithHelp("space",  "toggle selection")),
+		Enter:   key.NewBinding(key.WithKeys("enter"),                  key.WithHelp("enter",  "trash selected")),
+		Escape:  key.NewBinding(key.WithKeys("esc"),                    key.WithHelp("esc",    "back / quit")),
+		Filter:  key.NewBinding(key.WithKeys("/"),                      key.WithHelp("/",      "filter processes")),
+		Kill:    key.NewBinding(key.WithKeys("x"),                      key.WithHelp("x",      "kill process")),
+		NavUD:   key.NewBinding(key.WithKeys("up", "k", "down", "j"),  key.WithHelp("↑/↓",   "navigate")),
+		SortNum: key.NewBinding(key.WithKeys("1", "2", "3", "4"),      key.WithHelp("1-4",    "sort column")),
+	}
+}
+
+func (k goneKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Tab, k.Help, k.Quit}
+}
+
+func (k goneKeyMap) FullHelp() [][]key.Binding {
+	global := []key.Binding{k.Tab, k.Help, k.Quit}
+	switch k.active {
+	case tabUninstall:
+		return [][]key.Binding{global, {k.Search, k.Space, k.Enter, k.Escape}}
+	case tabMonitor:
+		return [][]key.Binding{global, {k.Filter, k.Kill, k.NavUD, k.SortNum}}
+	}
+	return [][]key.Binding{global}
+}
+
 type AppModel struct {
 	active     activeTab
 	uninstall  UninstallModel
 	monitor    MonitorModel
 	splash     SplashModel
 	styles     Styles
+	keys       goneKeyMap
+	helpView   help.Model
 	width      int
 	height     int
 	ready      bool
@@ -28,12 +80,17 @@ type AppModel struct {
 }
 
 func NewApp(initialSearch string) AppModel {
+	hv := help.New()
+	hv.ShowAll = true
+
 	return AppModel{
 		active:     tabUninstall,
 		uninstall:  NewUninstall(initialSearch),
 		monitor:    NewMonitorModel(),
 		splash:     NewSplashModel(),
 		styles:     DefaultStyles(),
+		keys:       defaultKeyMap(),
+		helpView:   hv,
 		showSplash: true,
 	}
 }
@@ -70,6 +127,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.active = tabUninstall
 			}
+			m.keys.active = m.active
 			return m, nil
 		}
 
@@ -79,6 +137,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		contentHeight := msg.Height - 4 // tab bar + padding
 		m.uninstall = m.uninstall.SetSize(msg.Width, contentHeight)
 		m.monitor = m.monitor.SetSize(msg.Width, contentHeight)
+		m.helpView.SetWidth(m.width - 16)
 		m.ready = true
 	}
 
@@ -152,28 +211,24 @@ func (m AppModel) View() tea.View {
 		ghostArt := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("245")).
 			Render(ghost)
-		help := lipgloss.NewStyle().
+
+		keybindingsText := m.helpView.View(m.keys)
+
+		helpBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("245")).
 			Padding(1, 3).
 			Width(50).
 			Render(
 				ghostArt + "\n" +
-					"  g o n e — keybindings\n\n" +
-					"  Tab       Switch tabs\n" +
-					"  /         Filter list (Uninstall) / processes (Monitor)\n" +
-					"  Esc       Exit filter / back to search\n" +
-					"  Space     Toggle selection\n" +
-					"  Enter     Search (input) / Trash (list)\n" +
-					"  Esc       Back to search (from list)\n" +
-					"  Esc       Quit (from search bar)\n" +
-					"  x         Kill process (Monitor)\n" +
-					"  ?         Toggle help\n" +
-					"  Ctrl+C    Quit\n\n" +
-					"  hunt. select. trash.\n\n" +
-					"         x AI & DATA Labs.",
+					gradientText("g o n e") + "  — keybindings\n\n" +
+					keybindingsText + "\n\n" +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true).
+						Render("  hunt. select. trash.") + "\n\n" +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("245")).
+						Render("         x AI & DATA Labs."),
 			)
-		overlay := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, help)
+		overlay := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, helpBox)
 		v := tea.NewView(overlay)
 		v.AltScreen = true
 		return v

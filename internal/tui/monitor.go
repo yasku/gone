@@ -256,12 +256,7 @@ func (m MonitorModel) View() string {
 
 	// Filter bar or sort/action hint
 	if m.filtering {
-		filterBar := lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("245")).
-			Padding(0, 1).
-			Width(m.width - 8).
-			Render(m.filterInput.View())
+		filterBar := m.styles.SearchBarActive.Width(m.width - 8).Render(m.filterInput.View())
 		b.WriteString("  " + filterBar + "\n\n")
 	} else {
 		hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓ navigate  x kill  / filter"

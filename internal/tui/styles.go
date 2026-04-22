@@ -16,6 +16,7 @@ type Styles struct {
 	StatusBar       lipgloss.Style
 	Preview         lipgloss.Style
 	Selected        lipgloss.Style
+	SelectedItem    lipgloss.Style
 	Cursor          lipgloss.Style
 	DimText         lipgloss.Style
 	SizeSmall       lipgloss.Style
@@ -34,9 +35,16 @@ func DefaultStyles() Styles {
 			Border(lipgloss.RoundedBorder()).
 			BorderForegroundBlend(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")).
 			Padding(0, 1),
-		StatusBar:   lipgloss.NewStyle().Background(lipgloss.Color("236")).Foreground(lipgloss.Color("252")).Padding(0, 1),
-		Preview:     lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1),
-		Selected:    lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true),
+		StatusBar: lipgloss.NewStyle().
+			Background(lipgloss.Color("236")).
+			Foreground(lipgloss.Color("252")).
+			Padding(0, 1).
+			BorderTop(true).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForegroundBlend(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")),
+		Preview:      lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1),
+		Selected:     lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true),
+		SelectedItem: lipgloss.NewStyle().Background(lipgloss.Color("#2D1B3D")).Foreground(lipgloss.Color("#E8D5F2")).Bold(true),
 		Cursor:      lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
 		DimText:     lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
 		SizeSmall:   lipgloss.NewStyle().Foreground(lipgloss.Color("120")),

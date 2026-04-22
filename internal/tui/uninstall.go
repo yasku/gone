@@ -89,7 +89,7 @@ func (d fileDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	if index == m.Index() {
 		fmt.Fprint(w, d.styles.CursorRow.Width(m.Width()).Render(line))
 	} else if f.selected {
-		fmt.Fprint(w, d.styles.Selected.Render(line))
+		fmt.Fprint(w, d.styles.SelectedItem.Width(m.Width()).Render(line))
 	} else {
 		fmt.Fprint(w, line)
 	}
@@ -417,9 +417,9 @@ func (m UninstallModel) SetSize(w, h int) UninstallModel {
 	total := w - 2
 	listW := total * 3 / 5
 	previewW := total - listW - 4
-	m.list.SetSize(listW, h-6)
+	m.list.SetSize(listW, h-7)
 	m.viewport.SetWidth(previewW)
-	m.viewport.SetHeight(h - 6)
+	m.viewport.SetHeight(h - 7)
 	m.showPreview = w > 80
 	return m
 }
@@ -485,7 +485,7 @@ func (m UninstallModel) View() string {
 				BorderForegroundBlend(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")).
 				Padding(0, 1).
 				Width(previewContentW).
-				Height(m.height - 8).
+				Height(m.height - 9).
 				Render(m.viewport.View())
 			b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, listView, previewView))
 		} else {
@@ -493,6 +493,15 @@ func (m UninstallModel) View() string {
 		}
 	} else if m.term != "" {
 		b.WriteString("\n  No matches found.\n")
+	} else {
+		availH := m.height - 7
+		hint := lipgloss.JoinVertical(lipgloss.Center,
+			gradientText("gone"),
+			"",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Render("type a name and press Enter to hunt"),
+			lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("e.g.  claude   nvm   rustup   node"),
+		)
+		b.WriteString(lipgloss.Place(m.width-4, availH, lipgloss.Center, lipgloss.Center, hint))
 	}
 
 	// Status bar
