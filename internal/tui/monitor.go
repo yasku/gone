@@ -7,8 +7,9 @@ import (
 	"syscall"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
 	"gone/internal/sysinfo"
@@ -58,6 +59,8 @@ type MonitorModel struct {
 	killPending bool
 	killTarget  sysinfo.ProcInfo
 	killErr     string
+	filterInput textinput.Model
+	filtering   bool
 }
 
 func newGaugeBar() progress.Model {
@@ -69,13 +72,18 @@ func newGaugeBar() progress.Model {
 }
 
 func NewMonitorModel() MonitorModel {
+	fi := textinput.New()
+	fi.Placeholder = "filter by name…"
+	fi.CharLimit = 40
+
 	return MonitorModel{
-		styles:  DefaultStyles(),
-		sortBy:  sortCPU,
-		cpuBar:  newGaugeBar(),
-		ramBar:  newGaugeBar(),
-		swapBar: newGaugeBar(),
-		diskBar: newGaugeBar(),
+		styles:      DefaultStyles(),
+		sortBy:      sortCPU,
+		cpuBar:      newGaugeBar(),
+		ramBar:      newGaugeBar(),
+		swapBar:     newGaugeBar(),
+		diskBar:     newGaugeBar(),
+		filterInput: fi,
 	}
 }
 
@@ -98,13 +106,15 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 		return m, nil // swallow all input while confirm is active
 	}
 
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case refreshMsg:
 		m.snapshot = sysinfo.TakeSnapshot(15)
 		m.ready = true
-		// clamp cursor
-		if m.cursor >= len(m.snapshot.Procs) && len(m.snapshot.Procs) > 0 {
-			m.cursor = len(m.snapshot.Procs) - 1
+		procs := m.sortedProcs()
+		if m.cursor >= len(procs) && len(procs) > 0 {
+			m.cursor = len(procs) - 1
 		}
 		s := m.snapshot
 		// CPU: 0–100%
@@ -130,7 +140,6 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 		return m, tea.Batch(doRefresh(), cpuCmd, ramCmd, swapCmd, diskCmd)
 
 	case progress.FrameMsg:
-		var cmds []tea.Cmd
 		var cmd tea.Cmd
 		m.cpuBar, cmd = m.cpuBar.Update(msg)
 		cmds = append(cmds, cmd)
@@ -151,13 +160,36 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyPressMsg:
-		switch msg.String() {
+		key := msg.String()
+
+		if m.filtering {
+			switch key {
+			case "esc":
+				m.filtering = false
+				m.filterInput.Blur()
+				m.filterInput.Reset()
+				m.cursor = 0
+				return m, nil
+			default:
+				var cmd tea.Cmd
+				m.filterInput, cmd = m.filterInput.Update(msg)
+				cmds = append(cmds, cmd)
+				// clamp cursor after filter text changes
+				procs := m.sortedProcs()
+				if m.cursor >= len(procs) && len(procs) > 0 {
+					m.cursor = len(procs) - 1
+				}
+				return m, tea.Batch(cmds...)
+			}
+		}
+
+		switch key {
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
 			}
 		case "down", "j":
-			if m.cursor < len(m.snapshot.Procs)-1 {
+			if m.cursor < len(m.sortedProcs())-1 {
 				m.cursor++
 			}
 		case "1":
@@ -174,9 +206,15 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 				m.killTarget = procs[m.cursor]
 				m.killPending = true
 			}
+		case "/":
+			m.filtering = true
+			cmd := m.filterInput.Focus()
+			cmds = append(cmds, cmd)
+			return m, tea.Batch(cmds...)
 		}
 	}
-	return m, nil
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m MonitorModel) SetSize(w, h int) MonitorModel {
@@ -190,6 +228,7 @@ func (m MonitorModel) SetSize(w, h int) MonitorModel {
 	m.ramBar.SetWidth(barW)
 	m.swapBar.SetWidth(barW)
 	m.diskBar.SetWidth(barW)
+	m.filterInput.SetWidth(w - 8)
 	return m
 }
 
@@ -215,15 +254,30 @@ func (m MonitorModel) View() string {
 	b.WriteString(gauges)
 	b.WriteString("\n\n")
 
-	// Sort + action hint
-	hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓ navigate  x kill"
-	if m.killErr != "" {
-		hint = lipgloss.NewStyle().Foreground(lipgloss.Color("167")).Render(m.killErr)
+	// Filter bar or sort/action hint
+	if m.filtering {
+		filterBar := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("245")).
+			Padding(0, 1).
+			Width(m.width - 8).
+			Render(m.filterInput.View())
+		b.WriteString("  " + filterBar + "\n\n")
+	} else {
+		hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓ navigate  x kill  / filter"
+		if m.killErr != "" {
+			hint = lipgloss.NewStyle().Foreground(lipgloss.Color("167")).Render(m.killErr)
+		}
+		b.WriteString("  " + m.styles.DimText.Render(hint) + "\n\n")
 	}
-	b.WriteString("  " + m.styles.DimText.Render(hint) + "\n\n")
 
 	// Sort procs
 	procs := m.sortedProcs()
+
+	if len(procs) == 0 && m.filtering {
+		b.WriteString(m.styles.DimText.Render("  No processes match filter.") + "\n")
+		return b.String()
+	}
 
 	// Process table
 	b.WriteString(m.buildTable(procs))
@@ -314,6 +368,18 @@ func (m MonitorModel) killConfirmView() string {
 func (m MonitorModel) sortedProcs() []sysinfo.ProcInfo {
 	procs := make([]sysinfo.ProcInfo, len(m.snapshot.Procs))
 	copy(procs, m.snapshot.Procs)
+
+	if m.filtering && m.filterInput.Value() != "" {
+		lower := strings.ToLower(m.filterInput.Value())
+		filtered := procs[:0]
+		for _, p := range procs {
+			if strings.Contains(strings.ToLower(p.Name), lower) {
+				filtered = append(filtered, p)
+			}
+		}
+		procs = filtered
+	}
+
 	switch m.sortBy {
 	case sortCPU:
 		sort.Slice(procs, func(i, j int) bool { return procs[i].CPU > procs[j].CPU })
