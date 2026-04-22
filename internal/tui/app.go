@@ -27,10 +27,10 @@ type AppModel struct {
 	showHelp   bool
 }
 
-func NewApp() AppModel {
+func NewApp(initialSearch string) AppModel {
 	return AppModel{
 		active:     tabUninstall,
-		uninstall:  NewUninstallModel(),
+		uninstall:  NewUninstall(initialSearch),
 		monitor:    NewMonitorModel(),
 		splash:     NewSplashModel(),
 		styles:     DefaultStyles(),

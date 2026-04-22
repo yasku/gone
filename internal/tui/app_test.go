@@ -20,7 +20,7 @@ func keyTab() tea.KeyPressMsg {
 }
 
 func TestAppUpdateSplashDone(t *testing.T) {
-	m := NewApp()
+	m := NewApp("")
 	if !m.showSplash {
 		t.Fatal("expected splash visible initially")
 	}
@@ -32,7 +32,7 @@ func TestAppUpdateSplashDone(t *testing.T) {
 }
 
 func TestAppUpdateHelpToggle(t *testing.T) {
-	m := NewApp()
+	m := NewApp("")
 	out, _ := m.Update(keyChar('?'))
 	m = out.(AppModel)
 	if !m.showHelp {
@@ -46,7 +46,7 @@ func TestAppUpdateHelpToggle(t *testing.T) {
 }
 
 func TestAppUpdateHelpSwallowsOtherKeys(t *testing.T) {
-	m := NewApp()
+	m := NewApp("")
 	m.showSplash = false
 	m.showHelp = true
 	prev := m.active
@@ -58,7 +58,7 @@ func TestAppUpdateHelpSwallowsOtherKeys(t *testing.T) {
 }
 
 func TestAppUpdateTabCycle(t *testing.T) {
-	m := NewApp()
+	m := NewApp("")
 	m.showSplash = false
 	if m.active != tabUninstall {
 		t.Fatalf("expected starting tab=tabUninstall, got %d", m.active)
@@ -76,7 +76,7 @@ func TestAppUpdateTabCycle(t *testing.T) {
 }
 
 func TestAppUpdateCtrlCQuits(t *testing.T) {
-	m := NewApp()
+	m := NewApp("")
 	_, cmd := m.Update(keyCtrlC())
 	if cmd == nil {
 		t.Fatal("ctrl+c should return a command")
@@ -88,7 +88,7 @@ func TestAppUpdateCtrlCQuits(t *testing.T) {
 }
 
 func TestAppUpdateWindowSize(t *testing.T) {
-	m := NewApp()
+	m := NewApp("")
 	out, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	m = out.(AppModel)
 	if m.width != 120 || m.height != 40 {

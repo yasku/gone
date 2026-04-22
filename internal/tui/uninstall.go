@@ -203,10 +203,9 @@ type UninstallModel struct {
 	status         string
 }
 
-func NewUninstallModel() UninstallModel {
+func NewUninstall(initialSearch string) UninstallModel {
 	ti := textinput.New()
 	ti.Placeholder = "Type a name to search (e.g. claude, nvm, rustup)..."
-	ti.Focus()
 	ti.CharLimit = 128
 
 	sp := spinner.New()
@@ -222,7 +221,7 @@ func NewUninstallModel() UninstallModel {
 
 	vp := viewport.New()
 
-	return UninstallModel{
+	m := UninstallModel{
 		textinput:   ti,
 		spinner:     sp,
 		list:        l,
@@ -231,9 +230,23 @@ func NewUninstallModel() UninstallModel {
 		focus:       focusSearch,
 		showPreview: true,
 	}
+
+	if initialSearch != "" {
+		m.textinput.SetValue(initialSearch)
+		m.term = initialSearch
+		m.scanning = true
+		m.status = fmt.Sprintf("Scanning for %q…", initialSearch)
+	} else {
+		m.textinput.Focus()
+	}
+
+	return m
 }
 
 func (m UninstallModel) Init() tea.Cmd {
+	if m.term != "" {
+		return tea.Batch(textinput.Blink, m.spinner.Tick, runFullScan(m.term))
+	}
 	return textinput.Blink
 }
 
