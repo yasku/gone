@@ -8,6 +8,30 @@ import (
 	"gone/internal/scanner"
 )
 
+func TestSearchRCCompletionDirs(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Create a completion dir with a file containing a match
+	compDir := filepath.Join(tmp, ".oh-my-zsh", "completions")
+	if err := os.MkdirAll(compDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	compFile := filepath.Join(compDir, "_myapp")
+	if err := os.WriteFile(compFile, []byte("#compdef myapp\n# completion for myapp\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	origFiles := scanner.RCFiles
+	scanner.RCFiles = []string{}
+	t.Setenv("HOME", tmp)
+	defer func() { scanner.RCFiles = origFiles }()
+
+	matches := scanner.SearchRC("myapp")
+	if len(matches) != 2 {
+		t.Fatalf("expected 2 matches from completion dir, got %d: %+v", len(matches), matches)
+	}
+}
+
 func TestSearchRCFindsMatchingLines(t *testing.T) {
 	tmp := t.TempDir()
 	rc := filepath.Join(tmp, ".zshrc")
