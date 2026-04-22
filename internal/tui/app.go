@@ -78,6 +78,15 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	// Always route scan stream messages to uninstall (scan may run while on Monitor tab)
+	switch msg.(type) {
+	case scanItemMsg, scanDoneMsg:
+		var cmd tea.Cmd
+		m.uninstall, cmd = m.uninstall.Update(msg)
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
+	}
+
 	// Route other messages to active tab
 	switch m.active {
 	case tabUninstall:
