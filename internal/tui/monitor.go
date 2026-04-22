@@ -254,20 +254,22 @@ func (m MonitorModel) View() string {
 	b.WriteString(gauges)
 	b.WriteString("\n\n")
 
+	// Resolve procs early so count is available for the hint bar
+	procs := m.sortedProcs()
+	total := len(m.snapshot.Procs)
+
 	// Filter bar or sort/action hint
 	if m.filtering {
 		filterBar := m.styles.SearchBarActive.Width(m.width - 8).Render(m.filterInput.View())
 		b.WriteString("  " + filterBar + "\n\n")
 	} else {
-		hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓ navigate  x kill  / filter"
+		countPart := fmt.Sprintf("  ·  %d procs", total)
+		hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓  x kill  / filter" + countPart
 		if m.killErr != "" {
 			hint = lipgloss.NewStyle().Foreground(lipgloss.Color("167")).Render(m.killErr)
 		}
 		b.WriteString("  " + m.styles.DimText.Render(hint) + "\n\n")
 	}
-
-	// Sort procs
-	procs := m.sortedProcs()
 
 	if len(procs) == 0 && m.filtering {
 		b.WriteString(m.styles.DimText.Render("  No processes match filter.") + "\n")
@@ -291,7 +293,25 @@ func (m MonitorModel) gaugeView(label, value string, bar progress.Model) string 
 		Render(title + "\n" + bar.View() + "\n" + val)
 }
 
+// ProcCount returns the total number of processes in the last snapshot.
+func (m MonitorModel) ProcCount() int {
+	return len(m.snapshot.Procs)
+}
+
 func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
+	// Build headers with ▼ on the active sort column
+	pidHdr, nameHdr, cpuHdr, memHdr, rssHdr := "PID", "Name", "CPU%", "MEM%", "RSS"
+	switch m.sortBy {
+	case sortCPU:
+		cpuHdr = "CPU% ▼"
+	case sortMem:
+		memHdr = "MEM% ▼"
+	case sortRSS:
+		rssHdr = "RSS ▼"
+	case sortPID:
+		pidHdr = "PID ▼"
+	}
+
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#9B59B6")).
@@ -308,7 +328,7 @@ func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(borderStyle).
-		Headers("PID", "Name", "CPU%", "MEM%", "RSS").
+		Headers(pidHdr, nameHdr, cpuHdr, memHdr, rssHdr).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			if row == table.HeaderRow {
 				return headerStyle

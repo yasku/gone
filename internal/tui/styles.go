@@ -23,6 +23,11 @@ type Styles struct {
 	SizeMedium      lipgloss.Style
 	SizeLarge       lipgloss.Style
 	CursorRow       lipgloss.Style
+	FooterBar       lipgloss.Style
+	TabBadge        lipgloss.Style
+	BadgeHigh       lipgloss.Style
+	BadgeMed        lipgloss.Style
+	BadgeLow        lipgloss.Style
 }
 
 func DefaultStyles() Styles {
@@ -54,6 +59,28 @@ func DefaultStyles() Styles {
 			Background(lipgloss.Color("#1A1A2E")).
 			Foreground(lipgloss.Color("#00BCD4")).
 			Bold(true),
+		FooterBar: lipgloss.NewStyle().
+			Background(lipgloss.Color("234")).
+			Foreground(lipgloss.Color("241")).
+			Padding(0, 2),
+		TabBadge: lipgloss.NewStyle().
+			Background(lipgloss.Color("#00BCD4")).
+			Foreground(lipgloss.Color("#000000")).
+			Bold(true).
+			Padding(0, 1),
+		BadgeHigh: lipgloss.NewStyle().
+			Background(lipgloss.Color("#FF6B6B")).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Bold(true).
+			Padding(0, 1),
+		BadgeMed: lipgloss.NewStyle().
+			Background(lipgloss.Color("#FFDD57")).
+			Foreground(lipgloss.Color("#333333")).
+			Padding(0, 1),
+		BadgeLow: lipgloss.NewStyle().
+			Background(lipgloss.Color("#69FF94")).
+			Foreground(lipgloss.Color("#333333")).
+			Padding(0, 1),
 	}
 }
 

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"charm.land/bubbles/v2/help"
@@ -35,17 +36,17 @@ type goneKeyMap struct {
 
 func defaultKeyMap() goneKeyMap {
 	return goneKeyMap{
-		Tab:     key.NewBinding(key.WithKeys("tab"),                    key.WithHelp("tab",    "switch tabs")),
-		Help:    key.NewBinding(key.WithKeys("?"),                       key.WithHelp("?",      "toggle help")),
-		Quit:    key.NewBinding(key.WithKeys("ctrl+c"),                 key.WithHelp("ctrl+c", "quit")),
-		Search:  key.NewBinding(key.WithKeys("enter"),                  key.WithHelp("enter",  "search")),
-		Space:   key.NewBinding(key.WithKeys(" "),                      key.WithHelp("space",  "toggle selection")),
-		Enter:   key.NewBinding(key.WithKeys("enter"),                  key.WithHelp("enter",  "trash selected")),
-		Escape:  key.NewBinding(key.WithKeys("esc"),                    key.WithHelp("esc",    "back / quit")),
-		Filter:  key.NewBinding(key.WithKeys("/"),                      key.WithHelp("/",      "filter processes")),
-		Kill:    key.NewBinding(key.WithKeys("x"),                      key.WithHelp("x",      "kill process")),
-		NavUD:   key.NewBinding(key.WithKeys("up", "k", "down", "j"),  key.WithHelp("↑/↓",   "navigate")),
-		SortNum: key.NewBinding(key.WithKeys("1", "2", "3", "4"),      key.WithHelp("1-4",    "sort column")),
+		Tab:     key.NewBinding(key.WithKeys("tab"),                   key.WithHelp("tab",    "switch tabs")),
+		Help:    key.NewBinding(key.WithKeys("?"),                      key.WithHelp("?",      "toggle help")),
+		Quit:    key.NewBinding(key.WithKeys("ctrl+c"),                key.WithHelp("ctrl+c", "quit")),
+		Search:  key.NewBinding(key.WithKeys("enter"),                 key.WithHelp("enter",  "search")),
+		Space:   key.NewBinding(key.WithKeys(" "),                     key.WithHelp("space",  "toggle selection")),
+		Enter:   key.NewBinding(key.WithKeys("enter"),                 key.WithHelp("enter",  "trash selected")),
+		Escape:  key.NewBinding(key.WithKeys("esc"),                   key.WithHelp("esc",    "back / quit")),
+		Filter:  key.NewBinding(key.WithKeys("/"),                     key.WithHelp("/",      "filter processes")),
+		Kill:    key.NewBinding(key.WithKeys("x"),                     key.WithHelp("x",      "kill process")),
+		NavUD:   key.NewBinding(key.WithKeys("up", "k", "down", "j"), key.WithHelp("↑/↓",   "navigate")),
+		SortNum: key.NewBinding(key.WithKeys("1", "2", "3", "4"),     key.WithHelp("1-4",    "sort column")),
 	}
 }
 
@@ -65,23 +66,34 @@ func (k goneKeyMap) FullHelp() [][]key.Binding {
 }
 
 type AppModel struct {
-	active     activeTab
-	uninstall  UninstallModel
-	monitor    MonitorModel
-	splash     SplashModel
-	styles     Styles
-	keys       goneKeyMap
-	helpView   help.Model
-	width      int
-	height     int
-	ready      bool
-	showSplash bool
-	showHelp   bool
+	active      activeTab
+	uninstall   UninstallModel
+	monitor     MonitorModel
+	splash      SplashModel
+	styles      Styles
+	keys        goneKeyMap
+	helpView    help.Model // full help overlay (ShowAll=true)
+	footerHelp  help.Model // footer key hints (ShowAll=false)
+	width       int
+	height      int
+	ready       bool
+	showSplash  bool
+	showHelp    bool
 }
 
 func NewApp(initialSearch string) AppModel {
+	// Full-screen help overlay
 	hv := help.New()
 	hv.ShowAll = true
+	hv.Styles.FullKey = lipgloss.NewStyle().Foreground(lipgloss.Color("#00BCD4")).Bold(true)
+	hv.Styles.FullDesc = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
+	hv.Styles.FullSeparator = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+
+	// Footer short-help bar
+	fh := help.New()
+	fh.Styles.ShortKey = lipgloss.NewStyle().Foreground(lipgloss.Color("#00BCD4")).Bold(true)
+	fh.Styles.ShortDesc = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	fh.Styles.ShortSeparator = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
 
 	return AppModel{
 		active:     tabUninstall,
@@ -91,6 +103,7 @@ func NewApp(initialSearch string) AppModel {
 		styles:     DefaultStyles(),
 		keys:       defaultKeyMap(),
 		helpView:   hv,
+		footerHelp: fh,
 		showSplash: true,
 	}
 }
@@ -134,10 +147,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		contentHeight := msg.Height - 4 // tab bar + padding
+		contentHeight := msg.Height - 5 // header(2) + gap(1) + status(1) + footer(1)
 		m.uninstall = m.uninstall.SetSize(msg.Width, contentHeight)
 		m.monitor = m.monitor.SetSize(msg.Width, contentHeight)
 		m.helpView.SetWidth(m.width - 16)
+		m.footerHelp.SetWidth(m.width - 6)
 		m.ready = true
 	}
 
@@ -167,14 +181,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Route other messages to active tab
 	switch m.active {
 	case tabUninstall:
-		// Don't re-route refreshMsg
 		if _, ok := msg.(refreshMsg); !ok {
 			var cmd tea.Cmd
 			m.uninstall, cmd = m.uninstall.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 	case tabMonitor:
-		// Don't re-route refreshMsg (already handled above)
 		if _, ok := msg.(refreshMsg); !ok {
 			var cmd tea.Cmd
 			m.monitor, cmd = m.monitor.Update(msg)
@@ -236,16 +248,27 @@ func (m AppModel) View() tea.View {
 
 	var b strings.Builder
 
-	// Header bar: tabs (left) + GONE branding (right)
-	var uninstallTab, monitorTab string
+	// ── Header bar ──────────────────────────────────────────────────────────
 	activeTabSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00BCD4")).Padding(0, 1)
 	inactiveTabSt := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 1)
+
+	uninstallLabel := "Uninstall"
+	monitorLabel := "Monitor"
+	if c := m.uninstall.ItemCount(); c > 0 {
+		uninstallLabel = fmt.Sprintf("Uninstall  %s", m.styles.TabBadge.Render(fmt.Sprintf("%d", c)))
+	}
+	if c := m.monitor.ProcCount(); c > 0 {
+		monitorLabel = fmt.Sprintf("Monitor  %s",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(fmt.Sprintf("(%d)", c)))
+	}
+
+	var uninstallTab, monitorTab string
 	if m.active == tabUninstall {
-		uninstallTab = activeTabSt.Render("◉ Uninstall")
+		uninstallTab = activeTabSt.Render("◉ " + uninstallLabel)
 		monitorTab = inactiveTabSt.Render("○ Monitor")
 	} else {
 		uninstallTab = inactiveTabSt.Render("○ Uninstall")
-		monitorTab = activeTabSt.Render("◉ Monitor")
+		monitorTab = activeTabSt.Render("◉ " + monitorLabel)
 	}
 	tabs := lipgloss.JoinHorizontal(lipgloss.Center, uninstallTab, "  ", monitorTab)
 
@@ -253,10 +276,9 @@ func (m AppModel) View() tea.View {
 	tagline := lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true).Render("hunt. select. trash.")
 	brand := goneLogo + "  " + tagline
 
-	// Calculate spacer to push brand to the right
 	tabsW := lipgloss.Width(tabs)
 	brandW := lipgloss.Width(brand)
-	contentW := m.width - 4 // 2 padding + 2 margin
+	contentW := m.width - 4
 	spacerW := contentW - tabsW - brandW
 	if spacerW < 1 {
 		spacerW = 1
@@ -275,13 +297,18 @@ func (m AppModel) View() tea.View {
 	b.WriteString(header)
 	b.WriteString("\n")
 
-	// Content
+	// ── Tab content ─────────────────────────────────────────────────────────
 	switch m.active {
 	case tabUninstall:
 		b.WriteString(m.uninstall.View())
 	case tabMonitor:
 		b.WriteString(m.monitor.View())
 	}
+
+	// ── Footer key hints ─────────────────────────────────────────────────────
+	footerStr := m.footerHelp.View(m.keys)
+	b.WriteString("\n")
+	b.WriteString(m.styles.FooterBar.Width(m.width).Render(footerStr))
 
 	v := tea.NewView(b.String())
 	v.AltScreen = true

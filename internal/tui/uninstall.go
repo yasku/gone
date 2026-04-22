@@ -82,9 +82,10 @@ func (d fileDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		barStr = strings.Repeat("░", 10)
 	}
 
-	path := truncate(f.path, 45)
+	path := truncate(f.path, 43)
+	icon := kindIcon(f.kind)
 	kind := d.styles.DimText.Render(f.kind)
-	line := fmt.Sprintf("%s%s %-45s %s %s %8s  %s", cursor, check, path, kind, barStr, sizeStr, f.modTime)
+	line := fmt.Sprintf("%s%s %s %-43s %s %s %8s  %s", cursor, check, icon, path, kind, barStr, sizeStr, f.modTime)
 
 	if index == m.Index() {
 		fmt.Fprint(w, d.styles.CursorRow.Width(m.Width()).Render(line))
@@ -100,6 +101,20 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return "…" + s[len(s)-max+1:]
+}
+
+// kindIcon returns a single terminal-safe character representing a file kind.
+func kindIcon(kind string) string {
+	switch kind {
+	case "dir":
+		return "d"
+	case "symlink":
+		return "@"
+	case "rc-line":
+		return "#"
+	default:
+		return "·"
+	}
 }
 
 // --- Scan messages ---
@@ -550,4 +565,9 @@ func (m UninstallModel) SelectedItems() []fileItem {
 		}
 	}
 	return sel
+}
+
+// ItemCount returns the number of items currently in the result list.
+func (m UninstallModel) ItemCount() int {
+	return len(m.list.Items())
 }
