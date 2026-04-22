@@ -1,3 +1,5 @@
+// Package scanner (rcscanner.go) searches shell RC files and completion
+// directories for lines that reference a given tool name.
 package scanner
 
 import (
@@ -23,12 +25,16 @@ var completionDirs = []string{
 	".config/fish/conf.d",
 }
 
+// RCMatch represents a single line in an RC or completion file that contains
+// the search term.
 type RCMatch struct {
 	File    string
 	LineNum int
 	Line    string
 }
 
+// SearchRC scans all shell RC files and completion directories under $HOME for
+// lines containing term (case-insensitive). Returns nil if nothing is found.
 func SearchRC(term string) []RCMatch {
 	home, err := os.UserHomeDir()
 	if err != nil {

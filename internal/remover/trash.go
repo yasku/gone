@@ -1,5 +1,10 @@
 package remover
 
+// MoveToTrash moves the file or directory at absPath to the macOS Trash using
+// AppleScript via osascript. The path is passed as an argv argument rather than
+// interpolated into the script string, so filenames containing double-quote
+// characters are handled correctly.
+
 import (
 	"bytes"
 	"fmt"

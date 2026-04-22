@@ -1,3 +1,6 @@
+// Package sysinfo collects CPU, memory, swap, disk, and process metrics using
+// gopsutil. TakeSnapshot is the primary entry point; it performs a two-pass
+// CPU sample to obtain meaningful per-process CPU percentages.
 package sysinfo
 
 import (
@@ -11,6 +14,7 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 )
 
+// Snapshot holds a point-in-time view of system resources and top processes.
 type Snapshot struct {
 	CPUPercent float64
 	MemTotal   uint64
@@ -24,6 +28,7 @@ type Snapshot struct {
 	Procs      []ProcInfo
 }
 
+// ProcInfo holds per-process metrics for a single process.
 type ProcInfo struct {
 	PID  int32
 	Name string
@@ -32,6 +37,9 @@ type ProcInfo struct {
 	RSS  uint64
 }
 
+// TakeSnapshot collects a system snapshot including the top topN processes
+// sorted by CPU usage. A 500 ms sleep is used between the two CPU sampling
+// passes to obtain meaningful percentages.
 func TakeSnapshot(topN int) Snapshot {
 	var s Snapshot
 
@@ -97,6 +105,8 @@ func TakeSnapshot(topN int) Snapshot {
 	return s
 }
 
+// HumanBytes converts b bytes into a human-readable string with one decimal
+// place (e.g. 1536 → "1.5 KB"). Uses 1024-based units (KiB, MiB, …).
 func HumanBytes(b uint64) string {
 	const unit = 1024
 	if b < unit {

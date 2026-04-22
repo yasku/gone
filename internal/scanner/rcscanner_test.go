@@ -32,6 +32,59 @@ func TestSearchRCCompletionDirs(t *testing.T) {
 	}
 }
 
+func TestSearchRCCaseInsensitive(t *testing.T) {
+	tmp := t.TempDir()
+	rc := filepath.Join(tmp, ".zshrc")
+	if err := os.WriteFile(rc, []byte("export PATH=/opt/MyApp/bin\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	origFiles := scanner.RCFiles
+	scanner.RCFiles = []string{".zshrc"}
+	t.Setenv("HOME", tmp)
+	defer func() { scanner.RCFiles = origFiles }()
+
+	matches := scanner.SearchRC("myapp") // lowercase term should match uppercase content
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 case-insensitive match, got %d", len(matches))
+	}
+}
+
+func TestSearchRCMultipleFiles(t *testing.T) {
+	tmp := t.TempDir()
+	for _, name := range []string{".zshrc", ".bashrc"} {
+		path := filepath.Join(tmp, name)
+		if err := os.WriteFile(path, []byte("source /opt/myapp/init.sh\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	origFiles := scanner.RCFiles
+	scanner.RCFiles = []string{".zshrc", ".bashrc"}
+	t.Setenv("HOME", tmp)
+	defer func() { scanner.RCFiles = origFiles }()
+
+	matches := scanner.SearchRC("myapp")
+	if len(matches) != 2 {
+		t.Fatalf("expected 1 match per file (2 total), got %d", len(matches))
+	}
+}
+
+func TestSearchRCNoMatchReturnsEmptySlice(t *testing.T) {
+	tmp := t.TempDir()
+	rc := filepath.Join(tmp, ".zshrc")
+	if err := os.WriteFile(rc, []byte("export PATH=/usr/bin\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	origFiles := scanner.RCFiles
+	scanner.RCFiles = []string{".zshrc"}
+	t.Setenv("HOME", tmp)
+	defer func() { scanner.RCFiles = origFiles }()
+
+	matches := scanner.SearchRC("nonexistent-tool-xyz")
+	if len(matches) != 0 {
+		t.Errorf("expected empty slice, got %d matches", len(matches))
+	}
+}
+
 func TestSearchRCFindsMatchingLines(t *testing.T) {
 	tmp := t.TempDir()
 	rc := filepath.Join(tmp, ".zshrc")

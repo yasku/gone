@@ -1,3 +1,5 @@
+// Package remover moves files to the macOS Trash and records each operation in
+// an append-only JSONL log at ~/.config/gone/operations.log.
 package remover
 
 import (
@@ -8,6 +10,7 @@ import (
 	"time"
 )
 
+// LogEntry records a single trash operation in the operations log.
 type LogEntry struct {
 	Timestamp  string `json:"ts"`
 	Op         string `json:"op"`
@@ -28,6 +31,9 @@ func logPath() (string, error) {
 	return filepath.Join(home, ".config", "gone", "operations.log"), nil
 }
 
+// AppendLog writes entry as a JSON line to the operations log, creating the
+// log directory if it does not exist. The Op and Timestamp fields are
+// overwritten with "trash" and the current UTC time respectively.
 func AppendLog(entry LogEntry) error {
 	entry.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	entry.Op = "trash"
