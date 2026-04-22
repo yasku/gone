@@ -102,46 +102,44 @@ func truncate(s string, max int) string {
 	return "…" + s[len(s)-max+1:]
 }
 
-// --- Scan result message ---
+// --- Scan messages ---
 
+// scanItemMsg carries a single match emitted during a streaming scan.
+type scanItemMsg struct {
+	item fileItem
+	ch   <-chan scanner.Match
+}
+
+// scanDoneMsg signals that the streaming scan has completed.
+type scanDoneMsg struct{}
+
+// scanResultMsg is kept for compatibility but no longer emitted.
 type scanResultMsg struct {
 	items []fileItem
 }
 
-func runFullScan(term string) tea.Cmd {
+func startScan(term string) tea.Cmd {
+	ch := scanner.SearchStream(term, scanner.GetScanPaths())
+	return streamNext(ch)
+}
+
+func streamNext(ch <-chan scanner.Match) tea.Cmd {
 	return func() tea.Msg {
-		var items []fileItem
-
-		// File scan
-		matches, err := scanner.Search(term, scanner.GetScanPaths())
-		if err != nil {
-			return scanResultMsg{items: items}
+		m, ok := <-ch
+		if !ok {
+			return scanDoneMsg{}
 		}
-		for _, m := range matches {
-			size := m.Size
-			if m.IsDir {
-				size = scanner.DirSize(m.Path)
-			}
-			items = append(items, fileItem{
-				path:    m.Path,
-				size:    size,
-				modTime: m.ModTime.Format("2006-01-02"),
-				kind:    m.Kind,
-			})
+		size := m.Size
+		if m.IsDir {
+			size = scanner.DirSize(m.Path)
 		}
-
-		// RC scan
-		rcMatches := scanner.SearchRC(term)
-		for _, rc := range rcMatches {
-			items = append(items, fileItem{
-				path:    fmt.Sprintf("%s:%d", rc.File, rc.LineNum),
-				size:    int64(len(rc.Line)),
-				modTime: "",
-				kind:    "rc-line",
-			})
+		item := fileItem{
+			path:    m.Path,
+			size:    size,
+			modTime: m.ModTime.Format("2006-01-02"),
+			kind:    m.Kind,
 		}
-
-		return scanResultMsg{items: items}
+		return scanItemMsg{item: item, ch: ch}
 	}
 }
 
@@ -201,6 +199,7 @@ type UninstallModel struct {
 	height         int
 	term           string
 	status         string
+	maxSize        int64
 }
 
 func NewUninstall(initialSearch string) UninstallModel {
@@ -211,7 +210,7 @@ func NewUninstall(initialSearch string) UninstallModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 
-	delegate := fileDelegate{styles: DefaultStyles()}
+	delegate := fileDelegate{styles: DefaultStyles(), maxSize: 0}
 	l := list.New([]list.Item{}, delegate, 0, 0)
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
@@ -245,7 +244,7 @@ func NewUninstall(initialSearch string) UninstallModel {
 
 func (m UninstallModel) Init() tea.Cmd {
 	if m.term != "" {
-		return tea.Batch(textinput.Blink, m.spinner.Tick, runFullScan(m.term))
+		return tea.Batch(textinput.Blink, m.spinner.Tick, startScan(m.term))
 	}
 	return textinput.Blink
 }
@@ -284,8 +283,10 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 				}
 				m.term = term
 				m.scanning = true
+				m.maxSize = 0
+				m.list.SetItems(nil)
 				m.status = fmt.Sprintf("Scanning for %q…", term)
-				return m, tea.Batch(m.spinner.Tick, runFullScan(term))
+				return m, tea.Batch(m.spinner.Tick, startScan(term))
 			case "esc":
 				return m, tea.Quit
 			}
@@ -317,6 +318,32 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 			}
 		}
 
+	case scanItemMsg:
+		m.list.InsertItem(len(m.list.Items()), msg.item)
+		if msg.item.size > m.maxSize {
+			m.maxSize = msg.item.size
+			m.list.SetDelegate(fileDelegate{styles: m.styles, maxSize: m.maxSize})
+		}
+		m.status = fmt.Sprintf("Scanning… %d found", len(m.list.Items()))
+		return m, streamNext(msg.ch)
+
+	case scanDoneMsg:
+		m.scanning = false
+		m.list.SetDelegate(fileDelegate{styles: m.styles, maxSize: m.maxSize})
+		count := len(m.list.Items())
+		if count == 0 {
+			m.status = fmt.Sprintf("No matches for %q", m.term)
+		} else {
+			m.focus = focusList
+			m.textinput.Blur()
+			m.status = fmt.Sprintf("%d items — [Space] select  [Enter] trash", count)
+			if item, ok := m.list.Items()[0].(fileItem); ok {
+				m.viewport.SetContent(previewContent(item))
+			}
+		}
+		return m, nil
+
+	// scanResultMsg is no longer emitted but kept to avoid dead code issues.
 	case scanResultMsg:
 		m.scanning = false
 		items := make([]list.Item, len(msg.items))
@@ -335,7 +362,6 @@ func (m UninstallModel) Update(msg tea.Msg) (UninstallModel, tea.Cmd) {
 		m.focus = focusList
 		m.textinput.Blur()
 		m.status = fmt.Sprintf("Found %d matches for %q", len(msg.items), m.term)
-		// Set initial preview content for the first item
 		if len(msg.items) > 0 {
 			m.viewport.SetContent(previewContent(msg.items[0]))
 		}
