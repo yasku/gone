@@ -128,10 +128,10 @@ func (m AppModel) View() tea.View {
 				ghostArt + "\n" +
 					"  g o n e — keybindings\n\n" +
 					"  Tab       Switch tabs\n" +
-					"  /         Filter list (fuzzy)\n" +
+					"  /         Filter list (Uninstall) / processes (Monitor)\n" +
+					"  Esc       Exit filter / back to search\n" +
 					"  Space     Toggle selection\n" +
 					"  Enter     Search (input) / Trash (list)\n" +
-					"  Esc       Back to search\n" +
 					"  ?         Toggle help\n" +
 					"  Ctrl+C    Quit\n\n" +
 					"  hunt. select. trash.\n\n" +
