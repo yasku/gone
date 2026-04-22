@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 	"testing"
+
+	"charm.land/lipgloss/v2"
 )
 
 func TestGradientTextEmpty(t *testing.T) {
@@ -53,5 +55,59 @@ func TestDefaultStylesNonZero(t *testing.T) {
 	}
 	if s.TabActive.Render("x") == "" {
 		t.Error("TabActive style rendered empty")
+	}
+}
+
+func TestAllStyleFieldsRender(t *testing.T) {
+	s := DefaultStyles()
+	cases := []struct {
+		name  string
+		style lipgloss.Style
+	}{
+		{"SearchBar", s.SearchBar},
+		{"SearchBarActive", s.SearchBarActive},
+		{"StatusBar", s.StatusBar},
+		{"Preview", s.Preview},
+		{"Selected", s.Selected},
+		{"SelectedItem", s.SelectedItem},
+		{"Cursor", s.Cursor},
+		{"DimText", s.DimText},
+		{"SizeSmall", s.SizeSmall},
+		{"SizeMedium", s.SizeMedium},
+		{"SizeLarge", s.SizeLarge},
+		{"FooterBar", s.FooterBar},
+		{"TabBadge", s.TabBadge},
+		{"BadgeHigh", s.BadgeHigh},
+		{"BadgeMed", s.BadgeMed},
+		{"BadgeLow", s.BadgeLow},
+	}
+	for _, c := range cases {
+		if got := c.style.Render("x"); got == "" {
+			t.Errorf("style %s Render() returned empty", c.name)
+		}
+	}
+}
+
+func TestTabBadgeRendersWithContent(t *testing.T) {
+	s := DefaultStyles()
+	out := s.TabBadge.Render("42")
+	if !strings.Contains(out, "42") {
+		t.Errorf("TabBadge output missing content '42': %q", out)
+	}
+}
+
+func TestFooterBarRendersWithContent(t *testing.T) {
+	s := DefaultStyles()
+	out := s.FooterBar.Render("tab  ?  ctrl+c")
+	if !strings.Contains(out, "tab") {
+		t.Errorf("FooterBar output missing content: %q", out)
+	}
+}
+
+func TestSelectedItemRendersWithContent(t *testing.T) {
+	s := DefaultStyles()
+	out := s.SelectedItem.Render("/usr/local/bin/node")
+	if !strings.Contains(out, "node") {
+		t.Errorf("SelectedItem output missing content: %q", out)
 	}
 }

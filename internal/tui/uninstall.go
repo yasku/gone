@@ -200,6 +200,9 @@ const (
 
 // --- Uninstall model ---
 
+// UninstallModel is the Bubble Tea model for the Uninstall tab. It hosts the
+// search bar, a streaming file list, a preview viewport, and a confirmation
+// modal for trashing selected items.
 type UninstallModel struct {
 	textinput      textinput.Model
 	spinner        spinner.Model
@@ -217,6 +220,8 @@ type UninstallModel struct {
 	maxSize        int64
 }
 
+// NewUninstall creates an UninstallModel. If initialSearch is non-empty the
+// model starts scanning immediately when Init() is called.
 func NewUninstall(initialSearch string) UninstallModel {
 	ti := textinput.New()
 	ti.Placeholder = "Type a name to search (e.g. claude, nvm, rustup)..."
@@ -567,7 +572,7 @@ func (m UninstallModel) SelectedItems() []fileItem {
 	return sel
 }
 
-// ItemCount returns the number of items currently in the result list.
+// ItemCount returns the number of scan results currently shown in the list.
 func (m UninstallModel) ItemCount() int {
 	return len(m.list.Items())
 }

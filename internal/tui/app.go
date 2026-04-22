@@ -1,3 +1,6 @@
+// Package tui implements the gone terminal UI using Bubble Tea v2, Lip Gloss
+// v2, and Bubbles v2. AppModel is the root model that hosts the Uninstall and
+// Monitor tabs, the splash screen, and the help overlay.
 package tui
 
 import (
@@ -17,8 +20,9 @@ const (
 	tabMonitor
 )
 
-// goneKeyMap defines all keybindings and satisfies the help.KeyMap interface.
-// FullHelp is tab-aware: Monitor shows filter/kill/sort, Uninstall shows search/select/trash.
+// goneKeyMap defines all keybindings for gone and satisfies the help.KeyMap
+// interface. FullHelp is tab-aware: the Monitor tab shows filter/kill/sort
+// bindings while the Uninstall tab shows search/select/trash bindings.
 type goneKeyMap struct {
 	active  activeTab
 	Tab     key.Binding
@@ -65,6 +69,8 @@ func (k goneKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{global}
 }
 
+// AppModel is the root Bubble Tea model. It owns the splash screen, tab
+// navigation, help overlay, and delegates messages to the active child model.
 type AppModel struct {
 	active      activeTab
 	uninstall   UninstallModel
@@ -81,6 +87,8 @@ type AppModel struct {
 	showHelp    bool
 }
 
+// NewApp constructs the root AppModel. If initialSearch is non-empty the
+// Uninstall tab starts scanning for that term immediately.
 func NewApp(initialSearch string) AppModel {
 	// Full-screen help overlay
 	hv := help.New()

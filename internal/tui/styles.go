@@ -1,5 +1,9 @@
 package tui
 
+// Styles holds all Lip Gloss styles used across the gone TUI. A single
+// DefaultStyles() call is made at model construction time and the result is
+// stored on each model that needs rendering styles.
+
 import (
 	"fmt"
 	"strings"
@@ -84,7 +88,8 @@ func DefaultStyles() Styles {
 	}
 }
 
-// gradientText renders each rune of text in a gradient from #9B59B6 (purple) to #00BCD4 (cyan).
+// gradientText renders each rune of text in a smooth colour gradient from
+// #9B59B6 (purple) to #00BCD4 (cyan) using Lip Gloss Blend1D.
 func gradientText(text string) string {
 	runes := []rune(text)
 	if len(runes) == 0 {
@@ -98,6 +103,9 @@ func gradientText(text string) string {
 	return sb.String()
 }
 
+// HumanSize converts b bytes to a human-readable string (e.g. "1.5 KB").
+// Uses 1024-based units. Unlike sysinfo.HumanBytes, the input is int64 to
+// accommodate file sizes reported by os.FileInfo.
 func HumanSize(b int64) string {
 	const unit = 1024
 	if b < unit {

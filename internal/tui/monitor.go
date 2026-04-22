@@ -1,5 +1,9 @@
 package tui
 
+// MonitorModel implements the system monitor tab. It polls gopsutil every 2 s,
+// renders CPU/RAM/Swap/Disk gauge bars, and displays a sortable, filterable
+// process table with an inline kill-confirmation flow.
+
 import (
 	"fmt"
 	"sort"
@@ -12,6 +16,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
+	"github.com/sahilm/fuzzy"
 	"gone/internal/sysinfo"
 )
 
@@ -43,7 +48,7 @@ func killProc(pid int32) tea.Cmd {
 	}
 }
 
-// MonitorModel is the system monitor tab model.
+// MonitorModel is the Bubble Tea model for the Monitor tab.
 type MonitorModel struct {
 	snapshot    sysinfo.Snapshot
 	styles      Styles
@@ -71,6 +76,8 @@ func newGaugeBar() progress.Model {
 	)
 }
 
+// NewMonitorModel creates a MonitorModel with default gauge bars and an empty
+// filter input ready for use.
 func NewMonitorModel() MonitorModel {
 	fi := textinput.New()
 	fi.Placeholder = "filter by name…"
@@ -264,7 +271,7 @@ func (m MonitorModel) View() string {
 		b.WriteString("  " + filterBar + "\n\n")
 	} else {
 		countPart := fmt.Sprintf("  ·  %d procs", total)
-		hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓  x kill  / filter" + countPart
+		hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓  x kill  / fuzzy-filter" + countPart
 		if m.killErr != "" {
 			hint = lipgloss.NewStyle().Foreground(lipgloss.Color("167")).Render(m.killErr)
 		}
@@ -293,7 +300,8 @@ func (m MonitorModel) gaugeView(label, value string, bar progress.Model) string 
 		Render(title + "\n" + bar.View() + "\n" + val)
 }
 
-// ProcCount returns the total number of processes in the last snapshot.
+// ProcCount returns the number of processes captured in the most recent
+// snapshot, or 0 if no snapshot has been taken yet.
 func (m MonitorModel) ProcCount() int {
 	return len(m.snapshot.Procs)
 }
@@ -385,12 +393,14 @@ func (m MonitorModel) sortedProcs() []sysinfo.ProcInfo {
 	copy(procs, m.snapshot.Procs)
 
 	if m.filtering && m.filterInput.Value() != "" {
-		lower := strings.ToLower(m.filterInput.Value())
-		filtered := procs[:0]
-		for _, p := range procs {
-			if strings.Contains(strings.ToLower(p.Name), lower) {
-				filtered = append(filtered, p)
-			}
+		names := make([]string, len(procs))
+		for i, p := range procs {
+			names[i] = p.Name
+		}
+		matches := fuzzy.Find(m.filterInput.Value(), names)
+		filtered := make([]sysinfo.ProcInfo, 0, len(matches))
+		for _, match := range matches {
+			filtered = append(filtered, procs[match.Index])
 		}
 		procs = filtered
 	}

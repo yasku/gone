@@ -98,3 +98,87 @@ func TestAppUpdateWindowSize(t *testing.T) {
 		t.Fatal("model should be ready after WindowSizeMsg")
 	}
 }
+
+func TestAppTabSyncsKeysActive(t *testing.T) {
+	m := NewApp("")
+	m.showSplash = false
+	out, _ := m.Update(keyTab())
+	got := out.(AppModel)
+	if got.keys.active != tabMonitor {
+		t.Errorf("keys.active = %d after tab, want tabMonitor", got.keys.active)
+	}
+	out, _ = got.Update(keyTab())
+	got = out.(AppModel)
+	if got.keys.active != tabUninstall {
+		t.Errorf("keys.active = %d after second tab, want tabUninstall", got.keys.active)
+	}
+}
+
+func TestAppShortHelpHasThreeBindings(t *testing.T) {
+	m := NewApp("")
+	bindings := m.keys.ShortHelp()
+	if len(bindings) != 3 {
+		t.Errorf("ShortHelp() len = %d, want 3", len(bindings))
+	}
+}
+
+func TestAppFullHelpUninstallTab(t *testing.T) {
+	m := NewApp("")
+	m.keys.active = tabUninstall
+	groups := m.keys.FullHelp()
+	if len(groups) != 2 {
+		t.Fatalf("FullHelp() (uninstall) = %d groups, want 2", len(groups))
+	}
+	if len(groups[0]) != 3 {
+		t.Errorf("global group len = %d, want 3", len(groups[0]))
+	}
+	if len(groups[1]) != 4 {
+		t.Errorf("uninstall group len = %d, want 4", len(groups[1]))
+	}
+}
+
+func TestAppFullHelpMonitorTab(t *testing.T) {
+	m := NewApp("")
+	m.keys.active = tabMonitor
+	groups := m.keys.FullHelp()
+	if len(groups) != 2 {
+		t.Fatalf("FullHelp() (monitor) = %d groups, want 2", len(groups))
+	}
+	if len(groups[1]) != 4 {
+		t.Errorf("monitor group len = %d, want 4", len(groups[1]))
+	}
+}
+
+func TestAppRoutesScanMsgToUninstallRegardlessOfTab(t *testing.T) {
+	m := NewApp("")
+	m.showSplash = false
+	m.active = tabMonitor // on monitor tab
+	out, _ := m.Update(scanDoneMsg{})
+	got := out.(AppModel)
+	// scanDoneMsg should update uninstall (scanning=false) even while on monitor tab
+	if got.uninstall.scanning {
+		t.Error("scanDoneMsg should clear uninstall.scanning even when monitor tab is active")
+	}
+}
+
+func TestAppRoutesRefreshToMonitor(t *testing.T) {
+	m := NewApp("")
+	m.showSplash = false
+	m.active = tabUninstall
+	m.monitor.ready = true
+	// refreshMsg should reach monitor even when on uninstall tab — no panic
+	out, _ := m.Update(refreshMsg{})
+	_ = out
+}
+
+func TestAppViewNoPanic(t *testing.T) {
+	m := NewApp("")
+	out, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+	m = out.(AppModel)
+	m.showSplash = false
+	v := m.View()
+	// View returns a tea.View; just ensure it is non-zero and AltScreen is set
+	if !v.AltScreen {
+		t.Error("View() should set AltScreen=true")
+	}
+}
