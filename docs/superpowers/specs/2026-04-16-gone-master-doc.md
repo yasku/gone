@@ -65,12 +65,20 @@ In a single Claude Code session on 2026-04-15 through 2026-04-16, the entire `go
 - Added 2 new tests: `TestSearchConcurrentSafety`, `TestSearchDeduplicatesOverlappingPaths`.
 - Report: `docs/superpowers/specs/2026-04-16-gone-qa-report.md`
 
+**Phase 8: Post-review bug fixes (2026-04-22)**
+- Branch `fix/open-bugs-post-review`. Addressed all 4 open issues from the phase-1 code review.
+- `logPath()` signature changed to `(string, error)` — no more silent relative path on double HOME failure.
+- `confirmView()` zero-guarded with `max(0, m.height-4)`.
+- `rcscanner.go` per-file scan extracted to `appendRCMatches()` helper with `defer f.Close()`.
+- Help overlay documents both `Esc` behaviours.
+- Report: `CHANGELOG.md` entry `[2026-04-22]`.
+
 ### Final State
 
-- **8 tests pass** across 3 packages (scanner: 5, remover: 1, sysinfo: 1, plus 1 RC scanner test)
+- **21 tests pass** across 4 packages (scanner: 5, remover: 1, sysinfo: 1, tui: 14)
 - `go build`, `go test -race`, `go vet` all clean
-- All 9 tasks from the plan implemented and committed
-- Full CHANGELOG maintained at `gone/CHANGELOG.md`
+- All 9 tasks + beautification phase 1 + UX/UI redesign + splash screen + bug fixes implemented and committed
+- Full CHANGELOG maintained at `CHANGELOG.md`
 
 ---
 
@@ -283,7 +291,7 @@ func main() {
 - `NewApp() AppModel` -- constructor, initializes both sub-models
 - `Init() tea.Cmd` -- batches both sub-model Init commands
 - `Update(msg) (tea.Model, tea.Cmd)` -- handles ctrl+c, ?, tab, WindowSizeMsg; routes refreshMsg to monitor always; routes other messages to active tab
-- `View() tea.View` -- renders tab bar (active/inactive lipgloss styles), content from active sub-model, and help overlay if `showHelp`
+- `View() tea.View` -- renders branded header bar (gradient GONE wordmark + active tab + help hint), content from active sub-model, and help overlay if `showHelp`. Help overlay documents all keybindings including both Esc behaviours.
 
 **Connections:** Imports and composes `UninstallModel` and `MonitorModel`. References `refreshMsg` type from `monitor.go`. Uses `Styles` from `styles.go`.
 
@@ -306,6 +314,7 @@ func main() {
 - `Init() tea.Cmd` -- returns `textinput.Blink`
 - `Update(msg) (UninstallModel, tea.Cmd)` -- state machine:
   - `focusSearch` + Enter → start scan (batch spinner tick + runFullScan)
+  - `focusSearch` + Esc → `tea.Quit` (exits the app — documented in help overlay)
   - `focusList` + Space → toggle selection via `SetItem`
   - `focusList` + Enter → trash selected items
   - `focusList` + Esc → return to search
@@ -314,6 +323,7 @@ func main() {
 - `SetSize(w, h int) UninstallModel` -- splits width 50/50 for list/preview, hides preview if width <= 80
 - `previewContent(item fileItem) string` -- builds preview text (path, type, size, date, dir entries, RC line info)
 - `View() string` -- renders search bar, spinner/list+preview/empty state, status bar
+- `confirmView() string` -- renders trash confirmation modal; uses `max(0, m.height-4)` to guard against underflow before first `WindowSizeMsg`
 - `SelectedItems() []fileItem` -- returns all items with `selected == true`
 - `runFullScan(term string) tea.Cmd` -- async: runs `scanner.Search` + `scanner.SearchRC`, returns `scanResultMsg`
 - `trashSelected(items []fileItem, term string) tea.Cmd` -- async: calls `remover.MoveToTrash` + `remover.AppendLog` for each item
@@ -416,7 +426,8 @@ func main() {
 
 **Key functions/variables:**
 - `RCFiles` -- list of RC file basenames: `.zshrc`, `.zshenv`, `.zprofile`, `.bashrc`, `.bash_profile`, `.profile`
-- `SearchRC(term string) []RCMatch` -- opens each RC file in `$HOME`, scans line-by-line for case-insensitive match, returns file path + line number + line content
+- `SearchRC(term string) []RCMatch` -- iterates `RCFiles`, delegates each file to `appendRCMatches`, returns combined results
+- `appendRCMatches(matches []RCMatch, path, lower string) []RCMatch` -- opens one RC file, uses `defer f.Close()` for safe handle cleanup, scans line-by-line for case-insensitive match, appends hits to matches slice
 
 ---
 
@@ -454,8 +465,8 @@ func main() {
 - `LogEntry` -- struct: `Timestamp`, `Op`, `Path`, `Size`, `Kind`, `SearchTerm` (all JSON-tagged)
 
 **Key functions:**
-- `logPath() string` -- returns `~/.config/gone/operations.log`
-- `AppendLog(entry LogEntry) error` -- sets timestamp (RFC3339) and op ("trash"), creates directory if needed, appends JSON line
+- `logPath() (string, error)` -- resolves `~/.config/gone/operations.log` via `os.UserHomeDir()` with `$HOME` fallback; returns an explicit error if both are empty (prevents silent writes to a relative path)
+- `AppendLog(entry LogEntry) error` -- sets timestamp (RFC3339) and op ("trash"), calls `logPath()` and propagates its error, creates directory if needed, appends JSON line
 
 ### `internal/remover/log_test.go` -- Log Test
 
@@ -1141,6 +1152,10 @@ All 9 implementation tasks are done. Build passes, 8 tests pass, race detector c
 - [x] Polish: color-coded sizes, help overlay (Task 8)
 - [x] Code review: data race fixed, dedup added
 - [x] QA: 8 issues fixed, 2 new tests added
+- [x] TUI beautification phase 1: spring-physics gauges, lipgloss table, confirmation modal, full-width cursor highlight
+- [x] UX/UI redesign: gradient GONE header, gradientText(), per-item size progress bars, gradient preview border
+- [x] Animated splash screen: Globe spinner + ASCII GONE banner + 2500ms transition
+- [x] Post-review bug fixes: logPath error guard, confirmView height zero-guard, rcscanner defer close, Esc documented
 
 ## What's Pending (see Future Work in master doc)
 - Recipes system

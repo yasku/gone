@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## [2026-04-22] Bug fixes — `fix/open-bugs-post-review`
+
+All four open issues from the post-phase-1 code review. No behaviour changes for the golden path.
+
+- Fixed `internal/remover/log.go`: `logPath()` now returns `(string, error)`; if both `os.UserHomeDir()` and `$HOME` are empty it returns an explicit error instead of silently producing the relative path `.config/gone/operations.log`. `AppendLog` propagates this error to the caller.
+- Fixed `internal/tui/uninstall.go`: `confirmView()` now uses `max(0, m.height-4)` to guard against integer underflow before the first `WindowSizeMsg` is received.
+- Fixed `internal/scanner/rcscanner.go`: extracted per-file scan work into `appendRCMatches()` helper that uses `defer f.Close()`, guaranteeing file handle cleanup on any exit path including panics.
+- Fixed `internal/tui/app.go`: help overlay now documents both `Esc` behaviours — "Back to search (from list)" and "Quit (from search bar)" — so the undocumented quit shortcut is no longer a surprise.
+- Verified: `go build ./cmd/... ./internal/...` succeeds; `go test -race ./cmd/... ./internal/...` all green (21 tests).
+
 ## [2026-04-17] Code review fixes — `feat/tui-beautification-phase1`
 
 Post-review patches from a branch-wide audit. All behavioural correctness, no feature changes.
