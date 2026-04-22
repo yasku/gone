@@ -157,6 +157,7 @@ func (m AppModel) View() tea.View {
 					"  Enter     Search (input) / Trash (list)\n" +
 					"  Esc       Back to search (from list)\n" +
 					"  Esc       Quit (from search bar)\n" +
+					"  x         Kill process (Monitor)\n" +
 					"  ?         Toggle help\n" +
 					"  Ctrl+C    Quit\n\n" +
 					"  hunt. select. trash.\n\n" +

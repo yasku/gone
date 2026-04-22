@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -29,19 +30,34 @@ const (
 	sortPID
 )
 
+type killDoneMsg struct {
+	pid int32
+	err error
+}
+
+func killProc(pid int32) tea.Cmd {
+	return func() tea.Msg {
+		err := syscall.Kill(int(pid), syscall.SIGTERM)
+		return killDoneMsg{pid: pid, err: err}
+	}
+}
+
 // MonitorModel is the system monitor tab model.
 type MonitorModel struct {
-	snapshot sysinfo.Snapshot
-	styles   Styles
-	width    int
-	height   int
-	ready    bool
-	cursor   int // selected row in process table
-	sortBy   sortCol
-	cpuBar   progress.Model
-	ramBar   progress.Model
-	swapBar  progress.Model
-	diskBar  progress.Model
+	snapshot    sysinfo.Snapshot
+	styles      Styles
+	width       int
+	height      int
+	ready       bool
+	cursor      int // selected row in process table
+	sortBy      sortCol
+	cpuBar      progress.Model
+	ramBar      progress.Model
+	swapBar     progress.Model
+	diskBar     progress.Model
+	killPending bool
+	killTarget  sysinfo.ProcInfo
+	killErr     string
 }
 
 func newGaugeBar() progress.Model {
@@ -68,6 +84,20 @@ func (m MonitorModel) Init() tea.Cmd {
 }
 
 func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
+	if m.killPending {
+		if key, ok := msg.(tea.KeyPressMsg); ok {
+			switch key.String() {
+			case "enter":
+				m.killPending = false
+				return m, killProc(m.killTarget.PID)
+			case "esc":
+				m.killPending = false
+				return m, nil
+			}
+		}
+		return m, nil // swallow all input while confirm is active
+	}
+
 	switch msg := msg.(type) {
 	case refreshMsg:
 		m.snapshot = sysinfo.TakeSnapshot(15)
@@ -112,6 +142,14 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
 
+	case killDoneMsg:
+		if msg.err != nil {
+			m.killErr = fmt.Sprintf("kill %d: %v", msg.pid, msg.err)
+		} else {
+			m.killErr = ""
+		}
+		return m, nil
+
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "up", "k":
@@ -130,6 +168,12 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 			m.sortBy = sortRSS
 		case "4":
 			m.sortBy = sortPID
+		case "x":
+			procs := m.sortedProcs()
+			if len(procs) > 0 && m.cursor < len(procs) {
+				m.killTarget = procs[m.cursor]
+				m.killPending = true
+			}
 		}
 	}
 	return m, nil
@@ -154,6 +198,10 @@ func (m MonitorModel) View() string {
 		return "  Loading system info…"
 	}
 
+	if m.killPending {
+		return m.killConfirmView()
+	}
+
 	s := m.snapshot
 	var b strings.Builder
 
@@ -167,9 +215,12 @@ func (m MonitorModel) View() string {
 	b.WriteString(gauges)
 	b.WriteString("\n\n")
 
-	// Sort hint
-	sortHint := m.styles.DimText.Render("Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓ navigate")
-	b.WriteString("  " + sortHint + "\n\n")
+	// Sort + action hint
+	hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓ navigate  x kill"
+	if m.killErr != "" {
+		hint = lipgloss.NewStyle().Foreground(lipgloss.Color("167")).Render(m.killErr)
+	}
+	b.WriteString("  " + m.styles.DimText.Render(hint) + "\n\n")
 
 	// Sort procs
 	procs := m.sortedProcs()
@@ -244,6 +295,20 @@ func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
 	}
 
 	return t.Render()
+}
+
+func (m MonitorModel) killConfirmView() string {
+	msg := fmt.Sprintf(
+		"  Send SIGTERM to %q (PID %d)?\n\n  [Enter] Confirm    [Esc] Cancel",
+		m.killTarget.Name, m.killTarget.PID,
+	)
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("245")).
+		Padding(1, 3).
+		Width(50).
+		Render(msg)
+	return lipgloss.Place(m.width, max(0, m.height-4), lipgloss.Center, lipgloss.Center, box)
 }
 
 func (m MonitorModel) sortedProcs() []sysinfo.ProcInfo {
