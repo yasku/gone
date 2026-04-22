@@ -491,7 +491,7 @@ func (m UninstallModel) confirmView() string {
 		Padding(1, 3).
 		Width(44).
 		Render(msg)
-	return lipgloss.Place(m.width, m.height-4, lipgloss.Center, lipgloss.Center, box)
+	return lipgloss.Place(m.width, max(0, m.height-4), lipgloss.Center, lipgloss.Center, box)
 }
 
 func (m UninstallModel) SelectedItems() []fileItem {

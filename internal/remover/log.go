@@ -2,6 +2,7 @@ package remover
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -16,24 +17,32 @@ type LogEntry struct {
 	SearchTerm string `json:"term"`
 }
 
-func logPath() string {
+func logPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = os.Getenv("HOME")
 	}
-	return filepath.Join(home, ".config", "gone", "operations.log")
+	if home == "" {
+		return "", fmt.Errorf("cannot resolve home directory: os.UserHomeDir failed and $HOME is unset")
+	}
+	return filepath.Join(home, ".config", "gone", "operations.log"), nil
 }
 
 func AppendLog(entry LogEntry) error {
 	entry.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	entry.Op = "trash"
 
-	dir := filepath.Dir(logPath())
+	p, err := logPath()
+	if err != nil {
+		return err
+	}
+
+	dir := filepath.Dir(p)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(logPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}

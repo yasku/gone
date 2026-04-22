@@ -28,23 +28,24 @@ func SearchRC(term string) []RCMatch {
 
 	for _, name := range RCFiles {
 		path := filepath.Join(home, name)
-		f, err := os.Open(path)
-		if err != nil {
-			continue
+		matches = appendRCMatches(matches, path, lower)
+	}
+	return matches
+}
+
+func appendRCMatches(matches []RCMatch, path, lower string) []RCMatch {
+	f, err := os.Open(path)
+	if err != nil {
+		return matches
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	lineNum := 0
+	for sc.Scan() {
+		lineNum++
+		if strings.Contains(strings.ToLower(sc.Text()), lower) {
+			matches = append(matches, RCMatch{File: path, LineNum: lineNum, Line: sc.Text()})
 		}
-		sc := bufio.NewScanner(f)
-		lineNum := 0
-		for sc.Scan() {
-			lineNum++
-			if strings.Contains(strings.ToLower(sc.Text()), lower) {
-				matches = append(matches, RCMatch{
-					File:    path,
-					LineNum: lineNum,
-					Line:    sc.Text(),
-				})
-			}
-		}
-		f.Close()
 	}
 	return matches
 }
