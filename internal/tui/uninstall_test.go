@@ -295,8 +295,8 @@ func TestUninstallViewNoPanic(t *testing.T) {
 	m := NewUninstall("")
 	m = m.SetSize(120, 40)
 	out := m.View()
-	if out == "" {
-		t.Error("View() returned empty string")
+	if out.Content == "" {
+		t.Error("View() returned empty Content")
 	}
 }
 
@@ -304,8 +304,8 @@ func TestUninstallViewWelcomeState(t *testing.T) {
 	m := NewUninstall("")
 	m = m.SetSize(120, 40)
 	out := m.View()
-	if !strings.Contains(out, "hunt") && !strings.Contains(out, "gone") && !strings.Contains(out, "Enter") {
-		t.Errorf("welcome state View() missing expected hint text, got: %q", safePrefix(out, 200))
+	if !strings.Contains(out.Content, "hunt") && !strings.Contains(out.Content, "gone") && !strings.Contains(out.Content, "Enter") {
+		t.Errorf("welcome state View() missing expected hint text, got: %q", safePrefix(out.Content, 200))
 	}
 }
 

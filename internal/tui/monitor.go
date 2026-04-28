@@ -48,14 +48,13 @@ func killProc(pid int32) tea.Cmd {
 	}
 }
 
-// MonitorModel is the Bubble Tea model for the Monitor tab.
 type MonitorModel struct {
 	snapshot    sysinfo.Snapshot
 	styles      Styles
 	width       int
 	height      int
 	ready       bool
-	cursor      int // selected row in process table
+	cursor      int
 	sortBy      sortCol
 	cpuBar      progress.Model
 	ramBar      progress.Model
@@ -66,13 +65,14 @@ type MonitorModel struct {
 	killErr     string
 	filterInput textinput.Model
 	filtering   bool
+	paused      bool
 }
 
 func newGaugeBar() progress.Model {
 	return progress.New(
-		progress.WithColors(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")),
+		progress.WithColors(lipgloss.Color("#FF6B35"), lipgloss.Color("240")),
 		progress.WithoutPercentage(),
-		progress.WithWidth(20),
+		progress.WithWidth(24),
 	)
 }
 
@@ -85,7 +85,8 @@ func NewMonitorModel() MonitorModel {
 
 	return MonitorModel{
 		styles:      DefaultStyles(),
-		sortBy:      sortCPU,
+		sortBy:      sortMem,
+		paused:      true,
 		cpuBar:      newGaugeBar(),
 		ramBar:      newGaugeBar(),
 		swapBar:     newGaugeBar(),
@@ -117,34 +118,33 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case refreshMsg:
-		m.snapshot = sysinfo.TakeSnapshot(15)
+		if !m.paused {
+			m.snapshot = sysinfo.TakeSnapshot(15)
+			s := m.snapshot
+			cpuCmd := m.cpuBar.SetPercent(s.CPUPercent / 100.0)
+			var ramPct float64
+			if s.MemTotal > 0 {
+				ramPct = float64(s.MemUsed) / float64(s.MemTotal)
+			}
+			ramCmd := m.ramBar.SetPercent(ramPct)
+			var swapPct float64
+			if s.SwapTotal > 0 {
+				swapPct = float64(s.SwapUsed) / float64(s.SwapTotal)
+			}
+			swapCmd := m.swapBar.SetPercent(swapPct)
+			var diskPct float64
+			if s.DiskTotal > 0 {
+				diskPct = float64(s.DiskUsed) / float64(s.DiskTotal)
+			}
+			diskCmd := m.diskBar.SetPercent(diskPct)
+			procs := m.sortedProcs()
+			if m.cursor >= len(procs) && len(procs) > 0 {
+				m.cursor = len(procs) - 1
+			}
+			return m, tea.Batch(doRefresh(), cpuCmd, ramCmd, swapCmd, diskCmd)
+		}
 		m.ready = true
-		procs := m.sortedProcs()
-		if m.cursor >= len(procs) && len(procs) > 0 {
-			m.cursor = len(procs) - 1
-		}
-		s := m.snapshot
-		// CPU: 0–100%
-		cpuCmd := m.cpuBar.SetPercent(s.CPUPercent / 100.0)
-		// RAM: used/total
-		var ramPct float64
-		if s.MemTotal > 0 {
-			ramPct = float64(s.MemUsed) / float64(s.MemTotal)
-		}
-		ramCmd := m.ramBar.SetPercent(ramPct)
-		// Swap: used/total
-		var swapPct float64
-		if s.SwapTotal > 0 {
-			swapPct = float64(s.SwapUsed) / float64(s.SwapTotal)
-		}
-		swapCmd := m.swapBar.SetPercent(swapPct)
-		// Disk: used/total
-		var diskPct float64
-		if s.DiskTotal > 0 {
-			diskPct = float64(s.DiskUsed) / float64(s.DiskTotal)
-		}
-		diskCmd := m.diskBar.SetPercent(diskPct)
-		return m, tea.Batch(doRefresh(), cpuCmd, ramCmd, swapCmd, diskCmd)
+		return m, doRefresh()
 
 	case progress.FrameMsg:
 		var cmd tea.Cmd
@@ -218,6 +218,29 @@ func (m MonitorModel) Update(msg tea.Msg) (MonitorModel, tea.Cmd) {
 			cmd := m.filterInput.Focus()
 			cmds = append(cmds, cmd)
 			return m, tea.Batch(cmds...)
+		case " ":
+			m.paused = !m.paused
+		case "r":
+			m.snapshot = sysinfo.TakeSnapshot(15)
+			m.ready = true
+			s := m.snapshot
+			cpuCmd := m.cpuBar.SetPercent(s.CPUPercent / 100.0)
+			var ramPct float64
+			if s.MemTotal > 0 {
+				ramPct = float64(s.MemUsed) / float64(s.MemTotal)
+			}
+			ramCmd := m.ramBar.SetPercent(ramPct)
+			var swapPct float64
+			if s.SwapTotal > 0 {
+				swapPct = float64(s.SwapUsed) / float64(s.SwapTotal)
+			}
+			swapCmd := m.swapBar.SetPercent(swapPct)
+			var diskPct float64
+			if s.DiskTotal > 0 {
+				diskPct = float64(s.DiskUsed) / float64(s.DiskTotal)
+			}
+			diskCmd := m.diskBar.SetPercent(diskPct)
+			return m, tea.Batch(cpuCmd, ramCmd, swapCmd, diskCmd)
 		}
 	}
 
@@ -239,26 +262,28 @@ func (m MonitorModel) SetSize(w, h int) MonitorModel {
 	return m
 }
 
-func (m MonitorModel) View() string {
+func (m MonitorModel) View() tea.View {
 	if !m.ready {
-		return "  Loading system info…"
+		return tea.NewView("  Loading system info…")
 	}
 
 	if m.killPending {
-		return m.killConfirmView()
+		return tea.NewView(m.killConfirmView())
 	}
 
 	s := m.snapshot
 	var b strings.Builder
 
-	// System gauges
-	gauges := lipgloss.JoinHorizontal(lipgloss.Top,
-		m.gaugeView("CPU", fmt.Sprintf("%.1f%%", s.CPUPercent), m.cpuBar),
-		m.gaugeView("RAM", fmt.Sprintf("%s / %s", sysinfo.HumanBytes(s.MemUsed), sysinfo.HumanBytes(s.MemTotal)), m.ramBar),
-		m.gaugeView("Swap", fmt.Sprintf("%s / %s", sysinfo.HumanBytes(s.SwapUsed), sysinfo.HumanBytes(s.SwapTotal)), m.swapBar),
-		m.gaugeView("Disk", fmt.Sprintf("%s free / %s", sysinfo.HumanBytes(s.DiskFree), sysinfo.HumanBytes(s.DiskTotal)), m.diskBar),
+// System gauges — 4 boxes centered as a block
+	totalW := m.width - 4
+	gaugeW := totalW / 4
+	gauges := lipgloss.JoinHorizontal(lipgloss.Center,
+		m.gaugeView("CPU", fmt.Sprintf("%.1f%%", s.CPUPercent), m.cpuBar, gaugeW),
+		m.gaugeView("RAM", fmt.Sprintf("%s / %s", sysinfo.HumanBytes(s.MemUsed), sysinfo.HumanBytes(s.MemTotal)), m.ramBar, gaugeW),
+		m.gaugeView("Swap", fmt.Sprintf("%s / %s", sysinfo.HumanBytes(s.SwapUsed), sysinfo.HumanBytes(s.SwapTotal)), m.swapBar, gaugeW),
+		m.gaugeView("Disk", fmt.Sprintf("%s free / %s", sysinfo.HumanBytes(s.DiskFree), sysinfo.HumanBytes(s.DiskTotal)), m.diskBar, gaugeW),
 	)
-	b.WriteString(gauges)
+	b.WriteString(lipgloss.Place(m.width, 1, lipgloss.Center, lipgloss.Left, gauges))
 	b.WriteString("\n\n")
 
 	// Resolve procs early so count is available for the hint bar
@@ -270,33 +295,38 @@ func (m MonitorModel) View() string {
 		filterBar := m.styles.SearchBarActive.Width(m.width - 8).Render(m.filterInput.View())
 		b.WriteString("  " + filterBar + "\n\n")
 	} else {
-		countPart := fmt.Sprintf("  ·  %d procs", total)
-		hint := "Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓  x kill  / fuzzy-filter" + countPart
-		if m.killErr != "" {
-			hint = lipgloss.NewStyle().Foreground(lipgloss.Color("167")).Render(m.killErr)
+		pauseLabel := "▶"
+		if m.paused {
+			pauseLabel = "⏸"
 		}
+		countPart := fmt.Sprintf("%d procs", total)
+		hint := fmt.Sprintf("Sort: [1]CPU [2]Mem [3]RSS [4]PID  ↑/↓  x kill  / filter  [space] %s  [r] refresh  ·  %s", pauseLabel, countPart)
 		b.WriteString("  " + m.styles.DimText.Render(hint) + "\n\n")
+	}
+
+	if m.killErr != "" {
+		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("167")).Render("  " + m.killErr) + "\n")
 	}
 
 	if len(procs) == 0 && m.filtering {
 		b.WriteString(m.styles.DimText.Render("  No processes match filter.") + "\n")
-		return b.String()
+		return tea.NewView(b.String())
 	}
 
-	// Process table
-	b.WriteString(m.buildTable(procs))
+	// Process table centered like the gauges
+	b.WriteString(lipgloss.Place(m.width, 1, lipgloss.Center, lipgloss.Left, m.buildTable(procs)))
 
-	return b.String()
+	return tea.NewView(b.String())
 }
 
-func (m MonitorModel) gaugeView(label, value string, bar progress.Model) string {
-	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00BCD4")).Render(label)
+func (m MonitorModel) gaugeView(label, value string, bar progress.Model, width int) string {
+	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF6B35")).Render(label)
 	val := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Render(value)
 	return lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForegroundBlend(lipgloss.Color("#9B59B6"), lipgloss.Color("#00BCD4")).
-		Padding(0, 2).
-		Width(m.width/4 - 4).
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Padding(0, 1).
+		Width(width).
 		Render(title + "\n" + bar.View() + "\n" + val)
 }
 
@@ -307,7 +337,6 @@ func (m MonitorModel) ProcCount() int {
 }
 
 func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
-	// Build headers with ▼ on the active sort column
 	pidHdr, nameHdr, cpuHdr, memHdr, rssHdr := "PID", "Name", "CPU%", "MEM%", "RSS"
 	switch m.sortBy {
 	case sortCPU:
@@ -320,20 +349,23 @@ func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
 		pidHdr = "PID ▼"
 	}
 
+	orange := lipgloss.Color("#FF6B35")
+	gray := lipgloss.Color("240")
+	lightGray := lipgloss.Color("252")
+
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("#9B59B6")).
+		Foreground(orange).
 		Align(lipgloss.Center)
 
 	cellStyle := lipgloss.NewStyle().Padding(0, 1)
+	oddRow := cellStyle.Foreground(gray)
+	evenRow := cellStyle.Foreground(lightGray)
 
-	oddRow := cellStyle.Foreground(lipgloss.Color("252"))
-	evenRow := cellStyle.Foreground(lipgloss.Color("245"))
-
-	borderStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("240"))
+	borderStyle := lipgloss.NewStyle().Foreground(gray)
 
 	t := table.New().
+		Width(m.width - 4).
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(borderStyle).
 		Headers(pidHdr, nameHdr, cpuHdr, memHdr, rssHdr).
@@ -343,17 +375,6 @@ func (m MonitorModel) buildTable(procs []sysinfo.ProcInfo) string {
 			}
 			if row == m.cursor {
 				return m.styles.CursorRow
-			}
-			if col == 2 && row >= 0 && row < len(procs) { // CPU% column
-				pct := procs[row].CPU
-				switch {
-				case pct >= 70.0:
-					return cellStyle.Foreground(lipgloss.Color("#FF6B6B"))
-				case pct >= 30.0:
-					return cellStyle.Foreground(lipgloss.Color("#FFDD57"))
-				default:
-					return cellStyle.Foreground(lipgloss.Color("#69FF94"))
-				}
 			}
 			if row%2 == 0 {
 				return evenRow

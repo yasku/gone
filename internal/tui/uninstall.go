@@ -477,9 +477,9 @@ func previewContent(item fileItem) string {
 	return b.String()
 }
 
-func (m UninstallModel) View() string {
+func (m UninstallModel) View() tea.View {
 	if m.confirmPending {
-		return m.confirmView()
+		return tea.NewView(m.confirmView())
 	}
 
 	var b strings.Builder
@@ -540,7 +540,7 @@ func (m UninstallModel) View() string {
 	bar := m.styles.StatusBar.Width(m.width - 4).Render(status)
 	b.WriteString("\n" + bar)
 
-	return b.String()
+	return tea.NewView(b.String())
 }
 
 func (m UninstallModel) confirmView() string {

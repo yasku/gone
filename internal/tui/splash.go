@@ -62,7 +62,7 @@ func (m SplashModel) Update(msg tea.Msg) (SplashModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m SplashModel) View() string {
+func (m SplashModel) View() tea.View {
 	logoStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#00BCD4")).
 		Bold(true)
@@ -88,5 +88,5 @@ func (m SplashModel) View() string {
 	}, "\n")
 
 	box := boxStyle.Render(content)
-	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+	return tea.NewView(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box))
 }

@@ -10,7 +10,9 @@ import (
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
+	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
 )
 
@@ -35,6 +37,49 @@ type ProcInfo struct {
 	CPU  float64
 	Mem  float32
 	RSS  uint64
+}
+
+// NetInterface holds network interface metrics.
+type NetInterface struct {
+	Name      string
+	RxBytes   uint64
+	TxBytes   uint64
+	RxPackets uint64
+	TxPackets uint64
+}
+
+// GetNetInterfaces returns network interface I/O statistics.
+func GetNetInterfaces() []NetInterface {
+	var ifaces []NetInterface
+
+	ioStats, err := net.IOCounters(true)
+	if err != nil {
+		return ifaces
+	}
+
+	for _, stat := range ioStats {
+		ifaces = append(ifaces, NetInterface{
+			Name:      stat.Name,
+			RxBytes:   stat.BytesRecv,
+			TxBytes:   stat.BytesSent,
+			RxPackets: stat.PacketsRecv,
+			TxPackets: stat.PacketsSent,
+		})
+	}
+
+	return ifaces
+}
+
+// GetHostInfo returns system host information.
+func GetHostInfo() (uptime string, hostname string, err error) {
+	h, err := host.Info()
+	if err != nil {
+		return "", "", err
+	}
+
+	uptime = fmt.Sprintf("%.1f days", float64(h.Uptime)/86400)
+	hostname = h.Hostname
+	return uptime, hostname, nil
 }
 
 // TakeSnapshot collects a system snapshot including the top topN processes

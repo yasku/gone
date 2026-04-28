@@ -70,8 +70,23 @@ func TestAppUpdateTabCycle(t *testing.T) {
 	}
 	out, _ = m.Update(keyTab())
 	m = out.(AppModel)
+	if m.active != tabNetwork {
+		t.Fatalf("second tab press: got %d, want tabNetwork", m.active)
+	}
+	out, _ = m.Update(keyTab())
+	m = out.(AppModel)
+	if m.active != tabLogs {
+		t.Fatalf("third tab press: got %d, want tabLogs", m.active)
+	}
+	out, _ = m.Update(keyTab())
+	m = out.(AppModel)
+	if m.active != tabAudit {
+		t.Fatalf("fourth tab press: got %d, want tabAudit", m.active)
+	}
+	out, _ = m.Update(keyTab())
+	m = out.(AppModel)
 	if m.active != tabUninstall {
-		t.Fatalf("second tab press: got %d, want tabUninstall", m.active)
+		t.Fatalf("fifth tab press: got %d, want tabUninstall", m.active)
 	}
 }
 
@@ -109,8 +124,8 @@ func TestAppTabSyncsKeysActive(t *testing.T) {
 	}
 	out, _ = got.Update(keyTab())
 	got = out.(AppModel)
-	if got.keys.active != tabUninstall {
-		t.Errorf("keys.active = %d after second tab, want tabUninstall", got.keys.active)
+	if got.keys.active != tabNetwork {
+		t.Errorf("keys.active = %d after second tab, want tabNetwork", got.keys.active)
 	}
 }
 
@@ -146,6 +161,42 @@ func TestAppFullHelpMonitorTab(t *testing.T) {
 	}
 	if len(groups[1]) != 4 {
 		t.Errorf("monitor group len = %d, want 4", len(groups[1]))
+	}
+}
+
+func TestAppFullHelpNetworkTab(t *testing.T) {
+	m := NewApp("")
+	m.keys.active = tabNetwork
+	groups := m.keys.FullHelp()
+	if len(groups) != 2 {
+		t.Fatalf("FullHelp() (network) = %d groups, want 2", len(groups))
+	}
+	if len(groups[1]) != 2 {
+		t.Errorf("network group len = %d, want 2", len(groups[1]))
+	}
+}
+
+func TestAppFullHelpLogsTab(t *testing.T) {
+	m := NewApp("")
+	m.keys.active = tabLogs
+	groups := m.keys.FullHelp()
+	if len(groups) != 2 {
+		t.Fatalf("FullHelp() (logs) = %d groups, want 2", len(groups))
+	}
+	if len(groups[1]) != 3 {
+		t.Errorf("logs group len = %d, want 3", len(groups[1]))
+	}
+}
+
+func TestAppFullHelpAuditTab(t *testing.T) {
+	m := NewApp("")
+	m.keys.active = tabAudit
+	groups := m.keys.FullHelp()
+	if len(groups) != 2 {
+		t.Fatalf("FullHelp() (audit) = %d groups, want 2", len(groups))
+	}
+	if len(groups[1]) != 2 {
+		t.Errorf("audit group len = %d, want 2", len(groups[1]))
 	}
 }
 

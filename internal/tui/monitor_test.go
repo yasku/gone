@@ -311,7 +311,7 @@ func TestMonitorViewNoPanic(t *testing.T) {
 	m.snapshot.Procs = fakeProcs()
 	m = m.SetSize(120, 40)
 	out := m.View()
-	if out == "" {
-		t.Error("View() returned empty string")
+	if out.Content == "" {
+		t.Error("View() returned empty Content")
 	}
 }

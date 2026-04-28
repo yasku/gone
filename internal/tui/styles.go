@@ -54,15 +54,14 @@ func DefaultStyles() Styles {
 		Preview:      lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1),
 		Selected:     lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true),
 		SelectedItem: lipgloss.NewStyle().Background(lipgloss.Color("#2D1B3D")).Foreground(lipgloss.Color("#E8D5F2")).Bold(true),
-		Cursor:      lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
-		DimText:     lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
-		SizeSmall:   lipgloss.NewStyle().Foreground(lipgloss.Color("120")),
-		SizeMedium:  lipgloss.NewStyle().Foreground(lipgloss.Color("178")),
-		SizeLarge:   lipgloss.NewStyle().Foreground(lipgloss.Color("167")),
+		Cursor:       lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
+		DimText:      lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
+		SizeSmall:    lipgloss.NewStyle().Foreground(lipgloss.Color("120")),
+		SizeMedium:   lipgloss.NewStyle().Foreground(lipgloss.Color("178")),
+		SizeLarge:    lipgloss.NewStyle().Foreground(lipgloss.Color("167")),
 		CursorRow: lipgloss.NewStyle().
-			Background(lipgloss.Color("#1A1A2E")).
-			Foreground(lipgloss.Color("#00BCD4")).
-			Bold(true),
+			Background(lipgloss.Color("236")).
+			Padding(0, 1),
 		FooterBar: lipgloss.NewStyle().
 			Background(lipgloss.Color("234")).
 			Foreground(lipgloss.Color("241")).

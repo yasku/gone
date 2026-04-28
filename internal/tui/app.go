@@ -18,6 +18,9 @@ type activeTab int
 const (
 	tabUninstall activeTab = iota
 	tabMonitor
+	tabNetwork
+	tabLogs
+	tabAudit
 )
 
 // goneKeyMap defines all keybindings for gone and satisfies the help.KeyMap
@@ -36,21 +39,25 @@ type goneKeyMap struct {
 	Kill    key.Binding
 	NavUD   key.Binding
 	SortNum key.Binding
+	Refresh key.Binding
+	Clear   key.Binding
 }
 
 func defaultKeyMap() goneKeyMap {
 	return goneKeyMap{
-		Tab:     key.NewBinding(key.WithKeys("tab"),                   key.WithHelp("tab",    "switch tabs")),
-		Help:    key.NewBinding(key.WithKeys("?"),                      key.WithHelp("?",      "toggle help")),
-		Quit:    key.NewBinding(key.WithKeys("ctrl+c"),                key.WithHelp("ctrl+c", "quit")),
-		Search:  key.NewBinding(key.WithKeys("enter"),                 key.WithHelp("enter",  "search")),
-		Space:   key.NewBinding(key.WithKeys(" "),                     key.WithHelp("space",  "toggle selection")),
-		Enter:   key.NewBinding(key.WithKeys("enter"),                 key.WithHelp("enter",  "trash selected")),
-		Escape:  key.NewBinding(key.WithKeys("esc"),                   key.WithHelp("esc",    "back / quit")),
-		Filter:  key.NewBinding(key.WithKeys("/"),                     key.WithHelp("/",      "filter processes")),
-		Kill:    key.NewBinding(key.WithKeys("x"),                     key.WithHelp("x",      "kill process")),
-		NavUD:   key.NewBinding(key.WithKeys("up", "k", "down", "j"), key.WithHelp("↑/↓",   "navigate")),
-		SortNum: key.NewBinding(key.WithKeys("1", "2", "3", "4"),     key.WithHelp("1-4",    "sort column")),
+		Tab:     key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "switch tabs")),
+		Help:    key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
+		Quit:    key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit")),
+		Search:  key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "search")),
+		Space:   key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "toggle selection")),
+		Enter:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "trash selected")),
+		Escape:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back / quit")),
+		Filter:  key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+		Kill:    key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "kill process")),
+		NavUD:   key.NewBinding(key.WithKeys("up", "k", "down", "j"), key.WithHelp("↑/↓", "navigate")),
+		SortNum: key.NewBinding(key.WithKeys("1", "2", "3", "4"), key.WithHelp("1-4", "sort column")),
+		Refresh: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),
+		Clear:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "clear filter")),
 	}
 }
 
@@ -65,6 +72,12 @@ func (k goneKeyMap) FullHelp() [][]key.Binding {
 		return [][]key.Binding{global, {k.Search, k.Space, k.Enter, k.Escape}}
 	case tabMonitor:
 		return [][]key.Binding{global, {k.Filter, k.Kill, k.NavUD, k.SortNum}}
+	case tabNetwork:
+		return [][]key.Binding{global, {k.Filter, k.Refresh}}
+	case tabLogs:
+		return [][]key.Binding{global, {k.Filter, k.Refresh, k.Clear}}
+	case tabAudit:
+		return [][]key.Binding{global, {k.NavUD, k.Refresh}}
 	}
 	return [][]key.Binding{global}
 }
@@ -72,19 +85,22 @@ func (k goneKeyMap) FullHelp() [][]key.Binding {
 // AppModel is the root Bubble Tea model. It owns the splash screen, tab
 // navigation, help overlay, and delegates messages to the active child model.
 type AppModel struct {
-	active      activeTab
-	uninstall   UninstallModel
-	monitor     MonitorModel
-	splash      SplashModel
-	styles      Styles
-	keys        goneKeyMap
-	helpView    help.Model // full help overlay (ShowAll=true)
-	footerHelp  help.Model // footer key hints (ShowAll=false)
-	width       int
-	height      int
-	ready       bool
-	showSplash  bool
-	showHelp    bool
+	active     activeTab
+	uninstall  UninstallModel
+	monitor    MonitorModel
+	network    NetworkModel
+	logs       LogsModel
+	audit      AuditModel
+	splash     SplashModel
+	styles     Styles
+	keys       goneKeyMap
+	helpView   help.Model // full help overlay (ShowAll=true)
+	footerHelp help.Model // footer key hints (ShowAll=false)
+	width      int
+	height     int
+	ready      bool
+	showSplash bool
+	showHelp   bool
 }
 
 // NewApp constructs the root AppModel. If initialSearch is non-empty the
@@ -107,6 +123,9 @@ func NewApp(initialSearch string) AppModel {
 		active:     tabUninstall,
 		uninstall:  NewUninstall(initialSearch),
 		monitor:    NewMonitorModel(),
+		network:    NewNetworkModel(),
+		logs:       NewLogsModel(),
+		audit:      NewAuditModel(),
 		splash:     NewSplashModel(),
 		styles:     DefaultStyles(),
 		keys:       defaultKeyMap(),
@@ -121,6 +140,9 @@ func (m AppModel) Init() tea.Cmd {
 		m.splash.Init(),
 		m.uninstall.Init(),
 		m.monitor.Init(),
+		m.network.Init(),
+		m.logs.Init(),
+		m.audit.Init(),
 	)
 }
 
@@ -143,11 +165,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil // swallow all keys while help overlay is active
 		}
 		if msg.String() == "tab" {
-			if m.active == tabUninstall {
-				m.active = tabMonitor
-			} else {
-				m.active = tabUninstall
-			}
+			m.active = (m.active + 1) % 5
 			m.keys.active = m.active
 			return m, nil
 		}
@@ -155,9 +173,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		contentHeight := msg.Height - 5 // header(2) + gap(1) + status(1) + footer(1)
+		contentHeight := msg.Height - 5
 		m.uninstall = m.uninstall.SetSize(msg.Width, contentHeight)
 		m.monitor = m.monitor.SetSize(msg.Width, contentHeight)
+		m.network = m.network.SetSize(msg.Width, contentHeight)
+		m.logs = m.logs.SetSize(msg.Width, contentHeight)
+		m.audit = m.audit.SetSize(msg.Width, contentHeight)
 		m.helpView.SetWidth(m.width - 16)
 		m.footerHelp.SetWidth(m.width - 6)
 		m.ready = true
@@ -171,9 +192,18 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Always route refresh ticks to monitor (prevents freeze)
-	if _, ok := msg.(refreshMsg); ok {
+	switch msg.(type) {
+	case refreshMsg:
 		var cmd tea.Cmd
 		m.monitor, cmd = m.monitor.Update(msg)
+		cmds = append(cmds, cmd)
+	case networkRefreshMsg:
+		var cmd tea.Cmd
+		m.network, cmd = m.network.Update(msg)
+		cmds = append(cmds, cmd)
+	case auditRefreshMsg:
+		var cmd tea.Cmd
+		m.audit, cmd = m.audit.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -200,6 +230,18 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.monitor, cmd = m.monitor.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+	case tabNetwork:
+		var cmd tea.Cmd
+		m.network, cmd = m.network.Update(msg)
+		cmds = append(cmds, cmd)
+	case tabLogs:
+		var cmd tea.Cmd
+		m.logs, cmd = m.logs.Update(msg)
+		cmds = append(cmds, cmd)
+	case tabAudit:
+		var cmd tea.Cmd
+		m.audit, cmd = m.audit.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -213,7 +255,7 @@ func (m AppModel) View() tea.View {
 	}
 
 	if m.showSplash {
-		v := tea.NewView(m.splash.View())
+		v := tea.NewView(m.splash.View().Content)
 		v.AltScreen = true
 		return v
 	}
@@ -262,6 +304,9 @@ func (m AppModel) View() tea.View {
 
 	uninstallLabel := "Uninstall"
 	monitorLabel := "Monitor"
+	networkLabel := "Network"
+	logsLabel := "Logs"
+	auditLabel := "Audit"
 	if c := m.uninstall.ItemCount(); c > 0 {
 		uninstallLabel = fmt.Sprintf("Uninstall  %s", m.styles.TabBadge.Render(fmt.Sprintf("%d", c)))
 	}
@@ -270,31 +315,31 @@ func (m AppModel) View() tea.View {
 			lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(fmt.Sprintf("(%d)", c)))
 	}
 
-	var uninstallTab, monitorTab string
-	if m.active == tabUninstall {
-		uninstallTab = activeTabSt.Render("◉ " + uninstallLabel)
-		monitorTab = inactiveTabSt.Render("○ Monitor")
-	} else {
-		uninstallTab = inactiveTabSt.Render("○ Uninstall")
-		monitorTab = activeTabSt.Render("◉ " + monitorLabel)
+	tabs := []string{uninstallLabel, monitorLabel, networkLabel, logsLabel, auditLabel}
+	for i := range tabs {
+		if m.active == activeTab(i) {
+			tabs[i] = activeTabSt.Render("◉ " + tabs[i])
+		} else {
+			tabs[i] = inactiveTabSt.Render("○ " + tabs[i])
+		}
 	}
-	tabs := lipgloss.JoinHorizontal(lipgloss.Center, uninstallTab, "  ", monitorTab)
+	tabBar := lipgloss.JoinHorizontal(lipgloss.Center, lipgloss.JoinHorizontal(lipgloss.Center, tabs[0], "  ", tabs[1], "  ", tabs[2], "  ", tabs[3]), "  ", tabs[4])
 
 	goneLogo := gradientText("G O N E")
 	tagline := lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true).Render("hunt. select. trash.")
 	brand := goneLogo + "  " + tagline
 
-	tabsW := lipgloss.Width(tabs)
+	tabsW := lipgloss.Width(tabBar)
 	brandW := lipgloss.Width(brand)
 	contentW := m.width - 4
 	spacerW := contentW - tabsW - brandW
 	if spacerW < 1 {
 		spacerW = 1
 	}
-	headerContent := tabs + strings.Repeat(" ", spacerW) + brand
+	headerContent := lipgloss.JoinHorizontal(lipgloss.Center, tabBar, strings.Repeat(" ", spacerW), brand)
 
 	header := lipgloss.NewStyle().
-		Width(m.width - 2).
+		Width(m.width-2).
 		PaddingLeft(1).
 		PaddingRight(1).
 		BorderBottom(true).
@@ -306,12 +351,20 @@ func (m AppModel) View() tea.View {
 	b.WriteString("\n")
 
 	// ── Tab content ─────────────────────────────────────────────────────────
+	var tabContent string
 	switch m.active {
 	case tabUninstall:
-		b.WriteString(m.uninstall.View())
+		tabContent = m.uninstall.View().Content
 	case tabMonitor:
-		b.WriteString(m.monitor.View())
+		tabContent = m.monitor.View().Content
+	case tabNetwork:
+		tabContent = m.network.View().Content
+	case tabLogs:
+		tabContent = m.logs.View().Content
+	case tabAudit:
+		tabContent = m.audit.View().Content
 	}
+	b.WriteString(tabContent)
 
 	// ── Footer key hints ─────────────────────────────────────────────────────
 	footerStr := m.footerHelp.View(m.keys)

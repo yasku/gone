@@ -35,7 +35,7 @@ func TestSplashViewNoPanic(t *testing.T) {
 	m.width = 80
 	m.height = 24
 	out := m.View()
-	if out == "" {
-		t.Error("SplashModel.View() returned empty string")
+	if out.Content == "" {
+		t.Error("SplashModel.View() returned empty Content")
 	}
 }
