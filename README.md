@@ -8,6 +8,7 @@
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
 [![macOS](https://img.shields.io/badge/macOS-only-000000?style=flat-square&logo=apple&logoColor=white)](https://www.apple.com/macos)
 [![Bubble Tea](https://img.shields.io/badge/Bubble_Tea-v2-FF75B7?style=flat-square)](https://github.com/charmbracelet/bubbletea)
+[![v2.0.0](https://img.shields.io/badge/v2.0.0-5%20tabs-FF6B35?style=flat-square)](#features)
 [![License](https://img.shields.io/badge/license-MIT-171717?style=flat-square)](LICENSE)
 
 [![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757?style=flat-square&logo=anthropic&logoColor=white)](https://claude.com/claude-code)
@@ -26,7 +27,7 @@ With Put Back support. Because mistakes happen. With gone eveything is... gone.
 
 <br>
 
-[Features](#features) · [Install](#install) · [Usage](#usage) · [How it works](#how-it-works) · [Stack](#stack) · [Contributing](#contributing)
+[Features](#features) · [Install](#install) · [Usage](#usage) · [How it works](#how-it-works) · [Stack](#stack) · [Contributing](#contributing) · [Docs](docs/)
 
 <br>
 
@@ -86,6 +87,40 @@ So we built it.
 - **4 sort modes** — CPU, memory, RSS, PID
 - **Auto-refresh** — 2 s real-time updates
 - **Zero config** — just press Tab
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### Network (v2.0.0)
+
+- **Real-time RX/TX gauges** — animated bars per interface
+- **Interface filtering** — filter by interface name
+- **Auto-refresh** — 2 s updates
+- **Multi-column layout** — adapts to terminal width
+
+</td>
+<td width="50%">
+
+### Logs (v2.0.0)
+
+- **Operation history** — read `~/.config/gone/operations.log`
+- **Filter and search** — find specific operations
+- **Color-coded entries** — TRASH/SCAN/START distinguished
+- **Path truncation** — long paths displayed smartly
+
+</td>
+</tr>
+<tr>
+<td width="50%" colspan="2">
+
+### Audit (v2.0.0)
+
+- **Security audit via osquery** — startup items, browser plugins, network connections, open ports
+- **Graceful degradation** — works without osquery (displays install instructions)
+- **Category navigation** — arrow keys to explore categories
+- **Status indicators** — ✓/⚠ indicators per category
 
 </td>
 </tr>
@@ -179,22 +214,29 @@ That's it. Files go to macOS Trash via Finder AppleScript — you can always **P
 
 | Key | Action |
 |:--|:--|
-| `Tab` | Switch between Uninstall and Monitor |
+| `Tab` | Switch between tabs (cycles: Uninstall → Monitor → Network → Logs → Audit) |
 | `Enter` | Scan (search mode) · Trash selected (list mode) |
 | `Space` | Toggle file selection |
-| `/` | Filter results |
-| `Esc` | Back to search input |
+| `/` | Filter results (or filter interfaces/paths depending on tab) |
+| `Esc` | Back to search input / cancel |
 | `?` | Help overlay |
 | `q` · `Ctrl+C` | Quit |
 
-### Monitor sort keys
+### Tab-specific keybindings
 
-| Key | Sort by |
-|:--|:--|
-| `1` | CPU % |
-| `2` | Memory % |
-| `3` | RSS |
-| `4` | PID |
+| Tab | Key | Action |
+|:----|:----|:-------|
+| **Monitor** | `1-4` | Sort by CPU / Memory / RSS / PID |
+| **Monitor** | `↑/↓` | Navigate process list |
+| **Monitor** | `x` | Kill process |
+| **Network** | `/` | Filter interfaces |
+| **Network** | `r` | Refresh stats |
+| **Logs** | `/` | Filter logs |
+| **Logs** | `r` | Refresh |
+| **Logs** | `c` | Clear filter |
+| **Audit** | `↑/↓` | Navigate categories |
+| **Audit** | `r` | Refresh |
+| **Audit** | `1-5` | Jump to category |
 
 <br>
 
@@ -240,6 +282,19 @@ Files are sent to macOS Trash via Finder AppleScript — never `rm`. Every opera
 | [gopsutil v4](https://github.com/shirou/gopsutil) | System metrics |
 | osascript | macOS Trash integration |
 
+### Optional CLI Tools (v2.0.0)
+
+gone integrates with these tools when available:
+
+| Tool | Purpose | Install |
+|:--|:--|:--|
+| [fd](https://github.com/sharkdp/fd) | Fast file finder | `brew install fd` |
+| [osquery](https://github.com/osquery/osquery) | SQL OS queries | `brew install osquery` |
+| [glances](https://github.com/nicolargo/glances) | System monitor | `brew install glances` |
+| [bmon](https://github.com/tgraf/bmon) | Network monitor | `brew install bmon` |
+
+Run `./scripts/check-tools.sh` to see which tools are installed.
+
 <br>
 
 ## Project structure
@@ -249,6 +304,11 @@ gone/
 ├── cmd/gone/
 │   └── main.go                 entry point
 ├── internal/
+│   ├── cli/                    CLI tool integration (v2.0.0)
+│   │   ├── runner.go           ExecJSON/ExecStream/ExecSimple
+│   │   ├── fd.go               fd wrapper
+│   │   ├── osquery.go          osqueryi wrapper
+│   │   └── tool.go             tool discovery
 │   ├── scanner/
 │   │   ├── scanner.go          parallel file scanner (fastwalk)
 │   │   ├── locations.go        scan paths, skip lists
@@ -257,13 +317,27 @@ gone/
 │   │   ├── trash.go            macOS Trash via osascript
 │   │   └── log.go              JSONL operation log
 │   ├── sysinfo/
-│   │   └── sysinfo.go          gopsutil wrapper
+│   │   └── sysinfo.go          gopsutil wrapper (CPU, RAM, disk, network)
 │   └── tui/
-│       ├── app.go              root model, tab routing, gradient header, help overlay
+│       ├── app.go              root model, 5-tab routing, gradient header, help overlay
 │       ├── splash.go           animated startup splash (gradient banner + spinner)
 │       ├── uninstall.go        search → scan → select → confirm → trash flow
 │       ├── monitor.go          animated gauges, styled process table
+│       ├── network.go          network interface RX/TX gauges (v2.0.0)
+│       ├── logs.go             operations log viewer (v2.0.0)
+│       ├── audit.go            osquery-based security audit (v2.0.0)
 │       └── styles.go           lipgloss theme (gradient accents)
+├── scripts/
+│   ├── test-all.sh             full test suite
+│   ├── coverage.sh             coverage reports
+│   ├── task-report.sh          task status
+│   ├── check-tools.sh          external tool checker
+│   └── release.sh              release preparation
+└── docs/
+    ├── ARCHITECTURE.md         system architecture
+    ├── SETUP.md                installation guide
+    ├── USER_GUIDE.md           user documentation
+    └── DEVELOPER_GUIDE.md      contributor guide
 ```
 
 <br>
@@ -275,11 +349,30 @@ Contributions are welcome. Please open an issue first to discuss what you'd like
 ```bash
 git clone https://github.com/yasku/gone.git
 cd gone
+
+# Build and test
 go build ./cmd/gone/
 go test ./...
+
+# Or use automation scripts
+./scripts/test-all.sh      # Full test suite
+./scripts/check-tools.sh    # Verify external tools
+
+# Generate coverage report
+./scripts/coverage.sh
 ```
 
 All tests must pass before submitting a PR.
+
+### External Tool Requirements
+
+For full functionality, install optional tools:
+
+```bash
+brew install fd osqueryi glances bmon mtr nmap
+```
+
+gone works without these tools but with reduced functionality.
 
 <br>
 
